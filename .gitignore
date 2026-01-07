@@ -19,6 +19,9 @@ result-*
 .DS_Store
 Thumbs.db
 
+# Generated models (keep in git for demo)
+# model_*.json
+
 
 # Added by cargo
 #
