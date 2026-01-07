@@ -17,7 +17,10 @@ pub struct NeuralNetwork {
 
 impl NeuralNetwork {
     /// Create a new neural network with given layer sizes
-    /// Example: vec![3, 64, 52, 42, 1] creates a network with 3 inputs, 3 hidden layers, and 1 output
+    /// Example: vec![3, 64, 52, 42, 1] creates a network with:
+    ///   - 3 inputs
+    ///   - 3 hidden layers (64, 52, 42 neurons)
+    ///   - 1 output
     pub fn new(layer_sizes: Vec<usize>, learning_rate: f64, seed: u64) -> Self {
         assert!(
             layer_sizes.len() >= 2,
