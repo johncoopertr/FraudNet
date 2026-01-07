@@ -49,18 +49,32 @@ fn sanitize_path(url_path: &str) -> Option<PathBuf> {
     
     // Remove leading slash and convert to path
     let requested_path = url_path.trim_start_matches('/');
+    
+    // Check for path traversal patterns
+    if requested_path.contains("..") {
+        return None;
+    }
+    
     let file_path = base_path.join(requested_path);
     
-    // Canonicalize both paths to resolve any .. or . components
-    let canonical_file = file_path.canonicalize().ok()?;
+    // Canonicalize base path
     let canonical_base = base_path.canonicalize().ok()?;
     
-    // Ensure the requested path is within the base directory
-    if canonical_file.starts_with(&canonical_base) {
-        Some(canonical_file)
+    // For existing files, canonicalize and verify they're within base
+    if file_path.exists() {
+        let canonical_file = file_path.canonicalize().ok()?;
+        if canonical_file.starts_with(&canonical_base) {
+            return Some(canonical_file);
+        }
     } else {
-        None
+        // For non-existent files, verify the constructed path is within base
+        // by checking all components don't escape
+        if file_path.starts_with(&base_path) {
+            return Some(file_path);
+        }
     }
+    
+    None
 }
 
 fn start_server() -> Result<(), Box<dyn std::error::Error>> {
@@ -119,7 +133,7 @@ fn start_server() -> Result<(), Box<dyn std::error::Error>> {
         
         // Determine file path with directory traversal protection
         let file_path = if url_path == "/" || url_path == DEMO_PATH {
-            Some(PathBuf::from("web/index.html"))
+            sanitize_path("web/index.html")
         } else {
             // Sanitize path to prevent directory traversal
             sanitize_path(url_path)
@@ -139,7 +153,10 @@ fn start_server() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         resp
                     }
-                    Err(_) => Response::from_string("500 Internal Server Error").with_status_code(500)
+                    Err(e) => {
+                        eprintln!("Error serving file {}: {}", path.display(), e);
+                        Response::from_string("500 Internal Server Error").with_status_code(500)
+                    }
                 }
             }
             _ => Response::from_string("404 Not Found").with_status_code(404)
