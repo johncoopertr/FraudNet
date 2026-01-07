@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudNet - Client-Side Neural Network Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .model-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .model-info {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .result.positive {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .result.negative {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .architecture {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+            color: #666;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.loading {
+            color: #667eea;
+        }
+        
+        .status.ready {
+            color: #28a745;
+        }
+        
+        .status.error {
+            color: #dc3545;
+        }
+        
+        .canvas-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        canvas {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 FraudNet</h1>
+        <p class="subtitle">Client-Side Neural Network Inference Demo</p>
+        
+        <div class="status ready" id="status">✓ Neural Network Models Loaded</div>
+        
+        <div class="model-grid">
+            <!-- Linear Model -->
+            <div class="model-card">
+                <h2>Linear Classifier</h2>
+                <div class="model-info">
+                    <strong>Architecture:</strong> 3 → 8 → 1<br>
+                    <strong>Problem:</strong> Linear Separable Data<br>
+                    <strong>Accuracy:</strong> 100% (Test)
+                </div>
+                
+                <div class="input-group">
+                    <label for="linear-x1">Feature 1:</label>
+                    <input type="number" id="linear-x1" value="0.5" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="linear-x2">Feature 2:</label>
+                    <input type="number" id="linear-x2" value="0.3" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="linear-x3">Feature 3:</label>
+                    <input type="number" id="linear-x3" value="0.2" step="0.1">
+                </div>
+                
+                <button onclick="predictLinear()">Predict</button>
+                
+                <div id="linear-result"></div>
+            </div>
+            
+            <!-- XOR Model -->
+            <div class="model-card">
+                <h2>XOR Classifier</h2>
+                <div class="model-info">
+                    <strong>Architecture:</strong> 2 → 8 → 1<br>
+                    <strong>Problem:</strong> XOR (Non-linear)<br>
+                    <strong>Accuracy:</strong> 97% (Test)
+                </div>
+                
+                <div class="input-group">
+                    <label for="xor-x1">X1 (range: -1 to 1):</label>
+                    <input type="number" id="xor-x1" value="0.5" step="0.1" min="-1" max="1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="xor-x2">X2 (range: -1 to 1):</label>
+                    <input type="number" id="xor-x2" value="-0.5" step="0.1" min="-1" max="1">
+                </div>
+                
+                <button onclick="predictXOR()">Predict</button>
+                
+                <div id="xor-result"></div>
+            </div>
+            
+            <!-- Circular Model -->
+            <div class="model-card">
+                <h2>Circular Boundary Classifier</h2>
+                <div class="model-info">
+                    <strong>Architecture:</strong> 2 → 16 → 8 → 1<br>
+                    <strong>Problem:</strong> Circular Boundary<br>
+                    <strong>Accuracy:</strong> 98% (Test)
+                </div>
+                
+                <div class="input-group">
+                    <label for="circ-x1">X1 (range: -1 to 1):</label>
+                    <input type="number" id="circ-x1" value="0.3" step="0.1" min="-1" max="1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="circ-x2">X2 (range: -1 to 1):</label>
+                    <input type="number" id="circ-x2" value="0.3" step="0.1" min="-1" max="1">
+                </div>
+                
+                <button onclick="predictCircular()">Predict</button>
+                
+                <div id="circular-result"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>About This Demo</h2>
+            <p style="color: #666; line-height: 1.6;">
+                This demo runs trained neural networks entirely in your web browser using JavaScript. 
+                The models were trained in Rust and exported to JSON format. No server-side processing 
+                is required - all inference happens locally on your device.
+            </p>
+            <div class="architecture">
+<strong>Key Features:</strong>
+• Pure client-side inference
+• No server communication required
+• Trained models serialized to JSON
+• ReLU activation for hidden layers
+• Sigmoid activation for output layer
+            </div>
+        </div>
+    </div>
+    
+    <script src="fraudnet.js"></script>
+    <script>
+        // Global model storage
+        let models = {};
+        
+        // Load all models on page load
+        async function loadModels() {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = '⏳ Loading models...';
+            statusEl.className = 'status loading';
+            
+            try {
+                const modelNames = ['linear', 'xor', 'circular'];
+                const modelFiles = ['model_linear.json', 'model_xor.json', 'model_circular.json'];
+                
+                for (let i = 0; i < modelNames.length; i++) {
+                    const response = await fetch('../' + modelFiles[i]);
+                    const modelData = await response.json();
+                    models[modelNames[i]] = new NeuralNetwork(modelData);
+                }
+                
+                statusEl.textContent = '✓ All models loaded successfully!';
+                statusEl.className = 'status ready';
+            } catch (error) {
+                statusEl.textContent = '✗ Error loading models: ' + error.message;
+                statusEl.className = 'status error';
+                console.error('Failed to load models:', error);
+            }
+        }
+        
+        function predictLinear() {
+            const x1 = parseFloat(document.getElementById('linear-x1').value);
+            const x2 = parseFloat(document.getElementById('linear-x2').value);
+            const x3 = parseFloat(document.getElementById('linear-x3').value);
+            
+            const prediction = models.linear.predict([x1, x2, x3]);
+            const probability = prediction[0];
+            const classification = probability >= 0.5 ? 'Class 1' : 'Class 0';
+            
+            const resultEl = document.getElementById('linear-result');
+            resultEl.className = 'result ' + (probability >= 0.5 ? 'positive' : 'negative');
+            resultEl.innerHTML = `
+                <strong>Prediction:</strong> ${classification}<br>
+                <strong>Probability:</strong> ${(probability * 100).toFixed(2)}%<br>
+                <strong>Raw Output:</strong> ${probability.toFixed(6)}
+            `;
+        }
+        
+        function predictXOR() {
+            const x1 = parseFloat(document.getElementById('xor-x1').value);
+            const x2 = parseFloat(document.getElementById('xor-x2').value);
+            
+            const prediction = models.xor.predict([x1, x2]);
+            const probability = prediction[0];
+            const classification = probability >= 0.5 ? 'XOR = 1' : 'XOR = 0';
+            
+            const resultEl = document.getElementById('xor-result');
+            resultEl.className = 'result ' + (probability >= 0.5 ? 'positive' : 'negative');
+            resultEl.innerHTML = `
+                <strong>Prediction:</strong> ${classification}<br>
+                <strong>Probability:</strong> ${(probability * 100).toFixed(2)}%<br>
+                <strong>Raw Output:</strong> ${probability.toFixed(6)}<br>
+                <em style="font-size: 0.9em;">XOR = 1 when signs differ</em>
+            `;
+        }
+        
+        function predictCircular() {
+            const x1 = parseFloat(document.getElementById('circ-x1').value);
+            const x2 = parseFloat(document.getElementById('circ-x2').value);
+            
+            const prediction = models.circular.predict([x1, x2]);
+            const probability = prediction[0];
+            const classification = probability >= 0.5 ? 'Inside Circle' : 'Outside Circle';
+            
+            const distance = Math.sqrt(x1 * x1 + x2 * x2);
+            
+            const resultEl = document.getElementById('circular-result');
+            resultEl.className = 'result ' + (probability >= 0.5 ? 'positive' : 'negative');
+            resultEl.innerHTML = `
+                <strong>Prediction:</strong> ${classification}<br>
+                <strong>Probability:</strong> ${(probability * 100).toFixed(2)}%<br>
+                <strong>Raw Output:</strong> ${probability.toFixed(6)}<br>
+                <strong>Distance from origin:</strong> ${distance.toFixed(3)}<br>
+                <em style="font-size: 0.9em;">Inside if distance < 0.5</em>
+            `;
+        }
+        
+        // Load models when page loads
+        loadModels();
+    </script>
+</body>
+</html>

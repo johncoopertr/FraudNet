@@ -1,6 +1,7 @@
 mod activation;
 mod data;
 mod matrix;
+mod model_export;
 mod network;
 mod tests;
 mod utils;
@@ -15,24 +16,44 @@ fn main() {
     // Test 1: Simple linearly separable data
     println!("Test 1: Linearly Separable Data");
     println!("--------------------------------");
-    test_linear_separable();
+    let network1 = test_linear_separable();
 
     println!("\n");
 
     // Test 2: XOR problem (non-linearly separable)
     println!("Test 2: XOR Problem (Non-linear)");
     println!("---------------------------------");
-    test_xor();
+    let network2 = test_xor();
 
     println!("\n");
 
     // Test 3: Circular boundary (non-linearly separable)
     println!("Test 3: Circular Boundary (Non-linear)");
     println!("---------------------------------------");
-    test_circular();
+    let network3 = test_circular();
+    
+    // Export trained models to JSON
+    println!("\nExporting trained models to JSON...");
+    if let Err(e) = network1.save_to_json("model_linear.json") {
+        eprintln!("Failed to export linear model: {}", e);
+    } else {
+        println!("✓ Exported model_linear.json");
+    }
+    
+    if let Err(e) = network2.save_to_json("model_xor.json") {
+        eprintln!("Failed to export XOR model: {}", e);
+    } else {
+        println!("✓ Exported model_xor.json");
+    }
+    
+    if let Err(e) = network3.save_to_json("model_circular.json") {
+        eprintln!("Failed to export circular model: {}", e);
+    } else {
+        println!("✓ Exported model_circular.json");
+    }
 }
 
-fn test_linear_separable() {
+fn test_linear_separable() -> NeuralNetwork {
     let mut data_gen = SyntheticDataGenerator::new(42);
 
     // Generate training and testing data
@@ -51,9 +72,11 @@ fn test_linear_separable() {
     println!("\nResults:");
     println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
     println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
+    
+    network
 }
 
-fn test_xor() {
+fn test_xor() -> NeuralNetwork {
     let mut data_gen = SyntheticDataGenerator::new(123);
 
     // Generate training and testing data
@@ -72,9 +95,11 @@ fn test_xor() {
     println!("\nResults:");
     println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
     println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
+    
+    network
 }
 
-fn test_circular() {
+fn test_circular() -> NeuralNetwork {
     let mut data_gen = SyntheticDataGenerator::new(456);
 
     // Generate training and testing data
@@ -93,4 +118,6 @@ fn test_circular() {
     println!("\nResults:");
     println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
     println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
+    
+    network
 }
