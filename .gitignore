@@ -5,7 +5,6 @@ result-*
 
 # Rust
 /target
-Cargo.lock
 **/*.rs.bk
 *.pdb
 
