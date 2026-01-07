@@ -64,15 +64,22 @@ This project uses Nix flakes for reproducible development environments. The flak
 ### Building the Project
 
 ```bash
-nix build
+# Build the project
+cargo build
+
+# Run tests
+cargo test
+
+# Train models and export to JSON
+cargo run
 ```
 
-Implementation:
+## Architecture
 
-This is a arbitrarily-scalable neural network capable of creating a classification network of N-inputs, should look something like the following:
+The neural network supports arbitrary layer configurations. The README example shows a multi-layer deep network, but the implementation is flexible:
 
 ```
-Input Layer (3 features after UMAP) 
+Input Layer (N features) 
     ↓
 Hidden Layer 1 (64 neurons, ReLU)
     ↓
@@ -95,4 +102,53 @@ Hidden Layer 9 (8 neurons, ReLU)
 Output Layer (1 neuron, Sigmoid)
 ```
 
-Finally, the network, once trained, should be compiled to be compatible with the ONNX runtime, to be used client side in a web-browser.
+### Key Features
+
+- **Activation Functions**: ReLU for hidden layers, Sigmoid for output layer
+- **Initialization**: Xavier/Glorot initialization for weights
+- **Training**: Backpropagation with gradient descent
+- **Export Format**: JSON serialization for client-side use
+
+## Model Export & Client-Side Inference
+
+The trained neural networks can be exported to JSON format and run entirely in web browsers:
+
+```rust
+// Train a model
+let mut network = NeuralNetwork::new(vec![3, 8, 1], 0.1, 12345);
+network.train(&train_inputs, &train_targets, 500);
+
+// Export to JSON
+network.save_to_json("model.json")?;
+
+// Load from JSON
+let loaded = NeuralNetwork::load_from_json("model.json")?;
+```
+
+The exported models can then be loaded and used in JavaScript:
+
+```javascript
+// Load model in browser
+const response = await fetch('model.json');
+const modelData = await response.json();
+const network = new NeuralNetwork(modelData);
+
+// Run inference
+const prediction = network.predict([0.5, 0.3, 0.2]);
+```
+
+See [web/README.md](web/README.md) for the complete client-side demo.
+
+## Testing
+
+Run the test suite:
+
+```bash
+# Rust tests
+cargo test
+
+# Client-side JavaScript tests
+node test_client_side.cjs
+```
+
+See [TESTING.md](TESTING.md) for comprehensive test documentation.
