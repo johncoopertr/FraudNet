@@ -1,0 +1,2 @@
+[alias]
+test-web = "run --release --bin fraudnet --quiet -- ; python3 scripts/start_webserver.py"
