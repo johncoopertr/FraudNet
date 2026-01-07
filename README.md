@@ -164,6 +164,38 @@ cargo test
 
 # Client-side JavaScript tests
 node test_client_side.cjs
+
+# Interactive web demo (with automatic server setup)
+cargo test-web
 ```
 
 See [TESTING.md](TESTING.md) for comprehensive test documentation.
+
+## Troubleshooting
+
+### Models not loading in browser?
+
+The most common issue is running the web server from the wrong directory. The model JSON files need to be accessible from the server root:
+
+**❌ Wrong:**
+```bash
+cd web
+python3 -m http.server 8000  # Models won't load!
+```
+
+**✅ Correct:**
+```bash
+# From project root
+python3 -m http.server 8000  # Then visit http://localhost:8000/web/
+
+# Or use the cargo command (recommended)
+cargo test-web
+```
+
+### Port already in use?
+
+If you get "Address already in use" error:
+```bash
+# Find and stop the process using port 8000
+lsof -ti:8000 | xargs kill
+```
