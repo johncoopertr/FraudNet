@@ -5,6 +5,7 @@ Implementation:
 
 This is a arbitrarily-scalable neural network capable of creating a classification network of N-inputs, should look something like the following:
 
+```
 Input Layer (3 features after UMAP) 
     ↓
 Hidden Layer 1 (64 neurons, ReLU)
@@ -26,5 +27,6 @@ Hidden Layer 8 (16 neurons, ReLU)
 Hidden Layer 9 (8 neurons, ReLU)
     ↓
 Output Layer (1 neuron, Sigmoid)
+```
 
 Finally, the network, once trained, should be compiled to be compatible with the ONNX runtime, to be used client side in a web-browser.
