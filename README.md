@@ -26,13 +26,28 @@ cargo run
 
 ### Run Client-Side Demo
 
+**Easiest way** - Use the cargo test-web command:
+
 ```bash
-# Start a local web server
-cd web
+# Train models (if needed) and start web demo
+cargo test-web
+
+# This will:
+# 1. Check if model files exist, train them if needed
+# 2. Start a web server at http://localhost:8000
+# 3. Automatically open the demo in your browser
+```
+
+**Manual method** - Start server from project root:
+
+```bash
+# From the project root (not the web/ directory)
 python3 -m http.server 8000
 
-# Open browser to http://localhost:8000
+# Open browser to http://localhost:8000/web/
 ```
+
+**Note:** The server must be run from the project root directory (not `web/`) so that the model JSON files are accessible at the correct paths.
 
 See [web/README.md](web/README.md) for more details on the browser demo.
 

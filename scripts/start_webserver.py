@@ -77,10 +77,17 @@ def start_server():
             def open_browser():
                 time.sleep(1)
                 try:
-                    webbrowser.open(f'http://localhost:{PORT}{DEMO_PATH}')
+                    # Check if we're in a headless environment
+                    import os
+                    if os.environ.get('DISPLAY') or os.environ.get('BROWSER'):
+                        webbrowser.open(f'http://localhost:{PORT}{DEMO_PATH}')
+                        print(f"✓ Browser opened to http://localhost:{PORT}{DEMO_PATH}")
+                    else:
+                        print(f"⚠️  Running in headless mode - browser not opened")
+                        print(f"   Open http://localhost:{PORT}{DEMO_PATH} in your browser")
                 except Exception as e:
                     print(f"⚠️  Could not open browser automatically: {e}")
-                    print(f"Please open http://localhost:{PORT}{DEMO_PATH} manually")
+                    print(f"   Please open http://localhost:{PORT}{DEMO_PATH} manually")
             
             threading.Thread(target=open_browser, daemon=True).start()
             
