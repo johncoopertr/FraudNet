@@ -1,4 +1,5 @@
 use crate::matrix::Matrix;
+use crate::utils::SimpleRng;
 
 /// Generate synthetic training and testing data for binary classification
 pub struct SyntheticDataGenerator {
@@ -97,27 +98,5 @@ impl SyntheticDataGenerator {
 
         self.seed = self.seed.wrapping_add(n_samples as u64);
         (inputs, targets)
-    }
-}
-
-/// Simple pseudo-random number generator (LCG) - same as in matrix.rs
-struct SimpleRng {
-    state: u64,
-}
-
-impl SimpleRng {
-    fn new(seed: u64) -> Self {
-        SimpleRng { state: seed }
-    }
-
-    fn next(&mut self) -> u64 {
-        const A: u64 = 6364136223846793005;
-        const C: u64 = 1442695040888963407;
-        self.state = self.state.wrapping_mul(A).wrapping_add(C);
-        self.state
-    }
-
-    fn next_f64(&mut self) -> f64 {
-        (self.next() as f64) / (u64::MAX as f64)
     }
 }

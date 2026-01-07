@@ -3,6 +3,7 @@ mod data;
 mod matrix;
 mod network;
 mod tests;
+mod utils;
 
 use data::SyntheticDataGenerator;
 use network::NeuralNetwork;
