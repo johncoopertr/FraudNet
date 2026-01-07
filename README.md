@@ -26,13 +26,28 @@ cargo run
 
 ### Run Client-Side Demo
 
+**Easiest way** - Use the cargo test-web command:
+
 ```bash
-# Start a local web server
-cd web
+# Train models (if needed) and start web demo
+cargo test-web
+
+# This will:
+# 1. Check if model files exist, train them if needed
+# 2. Start a web server at http://localhost:8000
+# 3. Automatically open the demo in your browser
+```
+
+**Manual method** - Start server from project root:
+
+```bash
+# From the project root (not the web/ directory)
 python3 -m http.server 8000
 
-# Open browser to http://localhost:8000
+# Open browser to http://localhost:8000/web/
 ```
+
+**Note:** The server must be run from the project root directory (not `web/`) so that the model JSON files are accessible at the correct paths.
 
 See [web/README.md](web/README.md) for more details on the browser demo.
 
@@ -149,6 +164,38 @@ cargo test
 
 # Client-side JavaScript tests
 node test_client_side.cjs
+
+# Interactive web demo (with automatic server setup)
+cargo test-web
 ```
 
 See [TESTING.md](TESTING.md) for comprehensive test documentation.
+
+## Troubleshooting
+
+### Models not loading in browser?
+
+The most common issue is running the web server from the wrong directory. The model JSON files need to be accessible from the server root:
+
+**❌ Wrong:**
+```bash
+cd web
+python3 -m http.server 8000  # Models won't load!
+```
+
+**✅ Correct:**
+```bash
+# From project root
+python3 -m http.server 8000  # Then visit http://localhost:8000/web/
+
+# Or use the cargo command (recommended)
+cargo test-web
+```
+
+### Port already in use?
+
+If you get "Address already in use" error:
+```bash
+# Find and stop the process using port 8000
+lsof -ti:8000 | xargs kill
+```

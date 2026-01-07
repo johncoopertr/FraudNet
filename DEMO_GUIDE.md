@@ -2,9 +2,31 @@
 
 ## Quick Start
 
+**Easiest method** - Use the cargo test-web command:
+
 1. **Start the web server**:
    ```bash
-   cd web
+   cargo test-web
+   ```
+
+   This single command will:
+   - Check if model files exist
+   - Train models if they're missing
+   - Start a web server at http://localhost:8000
+   - Attempt to open your browser automatically
+   
+2. **If the browser doesn't open automatically**, navigate to: http://localhost:8000/web/
+
+3. **Try the demos**:
+   - Adjust input values using the number fields
+   - Click "Predict" buttons to see results
+   - Watch predictions update in real-time
+
+**Alternative method** - Manual server:
+
+1. **Start the web server from project root**:
+   ```bash
+   # Must be run from project root, not web/ directory
    python3 -m http.server 8000
    ```
 
@@ -98,9 +120,25 @@ Tested and verified on:
 ## Troubleshooting
 
 ### Models not loading?
-1. Check that you're serving from a web server (not file://)
-2. Verify model JSON files are in parent directory
-3. Check browser console for errors
+
+**Error:** "Unexpected token '<', '<!DOCTYPE'... is not valid JSON"
+
+**Cause:** The web server is running from the wrong directory. When you run the server from the `web/` directory, it can't find the model JSON files in the parent directory and returns a 404 HTML page instead.
+
+**Solution:**
+```bash
+# ✅ Correct - Run from project root
+cd /path/to/FraudNet
+cargo test-web
+
+# OR manually:
+python3 -m http.server 8000
+# Then visit http://localhost:8000/web/
+
+# ❌ Wrong - Don't run from web/ directory
+cd web
+python3 -m http.server 8000  # This won't work!
+```
 
 ### Predictions seem wrong?
 1. Verify input values are in the expected range

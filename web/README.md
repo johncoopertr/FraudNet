@@ -11,38 +11,41 @@ This directory contains a client-side web demonstration of the FraudNet neural n
 
 ## Running the Demo
 
-### Option 1: Simple HTTP Server (Recommended)
+### Option 1: Cargo Command (Recommended)
 
 ```bash
 # From the project root directory
-cd web
+cargo test-web
+```
+
+This command will:
+1. Check if trained models exist, and train them if needed
+2. Start a web server at http://localhost:8000
+3. Automatically open the demo in your browser (if available)
+4. Serve files from the project root so models are accessible
+
+### Option 2: Manual Python Server
+
+```bash
+# From the project root directory (NOT the web/ directory)
 python3 -m http.server 8000
 ```
 
-Then open your browser to: http://localhost:8000
+Then open your browser to: http://localhost:8000/web/
 
-### Option 2: Using Node.js http-server
+**Important:** The server must be started from the project root directory, not the `web/` directory, so that the model JSON files (`model_*.json`) are accessible at the correct paths.
+
+### Option 3: Using Node.js http-server
 
 ```bash
 # Install http-server globally (if not already installed)
 npm install -g http-server
 
 # From the project root directory
-cd web
 http-server
 ```
 
-### Option 3: Direct File Access
-
-Some browsers allow opening the HTML file directly:
-```bash
-cd web
-open index.html  # macOS
-xdg-open index.html  # Linux
-start index.html  # Windows
-```
-
-Note: Due to CORS restrictions, you may need to use a local server for the model files to load properly.
+Then navigate to: http://localhost:8080/web/
 
 ## Demo Models
 
