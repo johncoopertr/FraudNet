@@ -151,6 +151,7 @@ mod tests {
     #[test]
     fn test_model_export_and_reload() {
         use std::fs;
+        use std::env;
         
         // Train a simple network
         let mut data_gen = SyntheticDataGenerator::new(42);
@@ -159,15 +160,15 @@ mod tests {
         let mut network = NeuralNetwork::new(vec![2, 4, 1], 0.1, 12345);
         network.train(&train_inputs, &train_targets, 100);
         
-        // Export to JSON
-        let test_path = "/tmp/test_model_export.json";
-        network.save_to_json(test_path).expect("Failed to save model");
+        // Export to JSON in temp directory
+        let test_path = env::temp_dir().join("test_model_export.json");
+        network.save_to_json(test_path.to_str().unwrap()).expect("Failed to save model");
         
         // Verify file exists
-        assert!(fs::metadata(test_path).is_ok(), "Model file should exist");
+        assert!(fs::metadata(&test_path).is_ok(), "Model file should exist");
         
         // Load the model back
-        let loaded_network = NeuralNetwork::load_from_json(test_path)
+        let loaded_network = NeuralNetwork::load_from_json(test_path.to_str().unwrap())
             .expect("Failed to load model");
         
         // Verify architectures match

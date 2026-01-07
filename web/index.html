@@ -308,8 +308,17 @@
                 const modelNames = ['linear', 'xor', 'circular'];
                 const modelFiles = ['model_linear.json', 'model_xor.json', 'model_circular.json'];
                 
+                // Try loading from parent directory first, then current directory
                 for (let i = 0; i < modelNames.length; i++) {
-                    const response = await fetch('../' + modelFiles[i]);
+                    let response;
+                    try {
+                        // Try parent directory first (typical setup)
+                        response = await fetch('../' + modelFiles[i]);
+                        if (!response.ok) throw new Error('Not found in parent');
+                    } catch (e) {
+                        // Fallback to current directory
+                        response = await fetch(modelFiles[i]);
+                    }
                     const modelData = await response.json();
                     models[modelNames[i]] = new NeuralNetwork(modelData);
                 }
