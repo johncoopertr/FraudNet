@@ -26,13 +26,17 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
     
     def log_message(self, format, *args):
-        # Custom logging format
-        if args[1] == '200':
-            # Only log successful requests to reduce noise
-            sys.stdout.write("%s - - [%s] %s\n" %
-                           (self.address_string(),
-                            self.log_date_time_string(),
-                            format % args))
+        # Custom logging format - only log successful requests to reduce noise
+        # args is like: ('GET /web/ HTTP/1.1', '200', '-')
+        try:
+            if len(args) > 1 and args[1] == '200':
+                sys.stdout.write("%s - - [%s] %s\n" %
+                               (self.address_string(),
+                                self.log_date_time_string(),
+                                format % args))
+        except (IndexError, TypeError):
+            # Fallback to default logging if format is unexpected
+            super().log_message(format, *args)
 
 def start_server():
     """Start the HTTP server."""
@@ -77,14 +81,14 @@ def start_server():
             def open_browser():
                 time.sleep(1)
                 try:
-                    # Check if we're in a headless environment
-                    import os
-                    if os.environ.get('DISPLAY') or os.environ.get('BROWSER'):
-                        webbrowser.open(f'http://localhost:{PORT}{DEMO_PATH}')
-                        print(f"✓ Browser opened to http://localhost:{PORT}{DEMO_PATH}")
-                    else:
-                        print(f"⚠️  Running in headless mode - browser not opened")
-                        print(f"   Open http://localhost:{PORT}{DEMO_PATH} in your browser")
+                    # Try to open browser - it will fail gracefully on headless systems
+                    webbrowser.open(f'http://localhost:{PORT}{DEMO_PATH}')
+                    # If we reach here and no exception was raised, browser should be opening
+                    # Check if we're likely in a headless environment
+                    if not (os.environ.get('DISPLAY') or os.environ.get('BROWSER') or 
+                           sys.platform == 'darwin'):  # macOS doesn't always set DISPLAY
+                        print(f"⚠️  Running in headless mode - browser may not open")
+                        print(f"   Please open http://localhost:{PORT}{DEMO_PATH} manually")
                 except Exception as e:
                     print(f"⚠️  Could not open browser automatically: {e}")
                     print(f"   Please open http://localhost:{PORT}{DEMO_PATH} manually")
