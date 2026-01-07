@@ -62,9 +62,8 @@
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
         };
       }
-      //
-      # Only define the package if Cargo.toml exists
-      (if builtins.pathExists ./Cargo.toml then {
+      // pkgs.lib.optionalAttrs (builtins.pathExists ./Cargo.toml) {
+        # Only define the package if Cargo.toml exists
         packages.default = pkgs.rustPlatform.buildRustPackage rec {
           pname = "fraudnet";
           version = "0.1.0";
@@ -85,6 +84,6 @@
             maintainers = [ ];
           };
         };
-      } else {})
+      }
     );
 }
