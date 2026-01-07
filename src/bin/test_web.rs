@@ -31,12 +31,36 @@ fn serve_file(file_path: &Path) -> Result<Response<std::io::Cursor<Vec<u8>>>, St
     
     let content_type = get_content_type(file_path);
     let response = Response::from_data(contents)
-        .with_header(Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes()).unwrap())
-        .with_header(Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap())
-        .with_header(Header::from_bytes(&b"Access-Control-Allow-Methods"[..], &b"GET"[..]).unwrap())
-        .with_header(Header::from_bytes(&b"Cache-Control"[..], &b"no-store, no-cache, must-revalidate"[..]).unwrap());
+        .with_header(Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes())
+            .expect("Content-Type header creation failed"))
+        .with_header(Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..])
+            .expect("CORS header creation failed"))
+        .with_header(Header::from_bytes(&b"Access-Control-Allow-Methods"[..], &b"GET"[..])
+            .expect("CORS methods header creation failed"))
+        .with_header(Header::from_bytes(&b"Cache-Control"[..], &b"no-store, no-cache, must-revalidate"[..])
+            .expect("Cache-Control header creation failed"));
     
     Ok(response)
+}
+
+fn sanitize_path(url_path: &str) -> Option<PathBuf> {
+    // Get the current directory as the base path
+    let base_path = std::env::current_dir().ok()?;
+    
+    // Remove leading slash and convert to path
+    let requested_path = url_path.trim_start_matches('/');
+    let file_path = base_path.join(requested_path);
+    
+    // Canonicalize both paths to resolve any .. or . components
+    let canonical_file = file_path.canonicalize().ok()?;
+    let canonical_base = base_path.canonicalize().ok()?;
+    
+    // Ensure the requested path is within the base directory
+    if canonical_file.starts_with(&canonical_base) {
+        Some(canonical_file)
+    } else {
+        None
+    }
 }
 
 fn start_server() -> Result<(), Box<dyn std::error::Error>> {
@@ -91,36 +115,37 @@ fn start_server() -> Result<(), Box<dyn std::error::Error>> {
     // Handle requests
     for request in server.incoming_requests() {
         let url_path = request.url();
+        let method = request.method().clone();
         
-        // Only log successful GET requests
-        if request.method() == &Method::Get {
-            // Simple timestamp without extra dependencies
-            let addr = request.remote_addr()
-                .map(|a| a.to_string())
-                .unwrap_or_else(|| "unknown".to_string());
-            println!("{} - - \"GET {} HTTP/1.1\" 200 -", addr, url_path);
-        }
-        
-        // Determine file path
+        // Determine file path with directory traversal protection
         let file_path = if url_path == "/" || url_path == DEMO_PATH {
-            PathBuf::from("web/index.html")
+            Some(PathBuf::from("web/index.html"))
         } else {
-            // Remove leading slash and serve from project root
-            let path_str = url_path.trim_start_matches('/');
-            PathBuf::from(path_str)
+            // Sanitize path to prevent directory traversal
+            sanitize_path(url_path)
         };
         
         // Serve file or return 404
-        match serve_file(&file_path) {
-            Ok(response) => {
-                let _ = request.respond(response);
+        let response = match file_path {
+            Some(path) if path.exists() => {
+                match serve_file(&path) {
+                    Ok(resp) => {
+                        // Log successful requests
+                        if method == Method::Get {
+                            let addr = request.remote_addr()
+                                .map(|a| a.to_string())
+                                .unwrap_or_else(|| "unknown".to_string());
+                            println!("{} - - \"GET {} HTTP/1.1\" 200 -", addr, url_path);
+                        }
+                        resp
+                    }
+                    Err(_) => Response::from_string("500 Internal Server Error").with_status_code(500)
+                }
             }
-            Err(_) => {
-                let response = Response::from_string("404 Not Found")
-                    .with_status_code(404);
-                let _ = request.respond(response);
-            }
-        }
+            _ => Response::from_string("404 Not Found").with_status_code(404)
+        };
+        
+        let _ = request.respond(response);
     }
     
     Ok(())
