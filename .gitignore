@@ -21,6 +21,7 @@ Thumbs.db
 
 # Generated models (keep in git for demo)
 # model_*.json
+# model_*.onnx
 
 
 # Added by cargo

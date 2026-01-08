@@ -12,6 +12,7 @@ fn get_content_type(path: &Path) -> &'static str {
         Some("html") => "text/html; charset=utf-8",
         Some("js") => "application/javascript; charset=utf-8",
         Some("json") => "application/json; charset=utf-8",
+        Some("onnx") => "application/octet-stream",
         Some("css") => "text/css; charset=utf-8",
         Some("png") => "image/png",
         Some("jpg") | Some("jpeg") => "image/jpeg",
@@ -214,6 +215,28 @@ fn main() {
         println!("\n✓ Models trained successfully!\n");
     } else {
         println!("✓ Model files found, skipping training.\n");
+    }
+    
+    // Convert JSON models to ONNX
+    println!("Converting models to ONNX...");
+    let convert_status = Command::new("python3")
+        .args(&["scripts/json_to_onnx.py"])
+        .status();
+    
+    match convert_status {
+        Ok(status) if status.success() => {
+            println!("✓ Models converted to ONNX format\n");
+        }
+        Ok(status) => {
+            eprintln!("Warning: ONNX conversion failed with exit code {:?}", status.code());
+            eprintln!("Continuing anyway - you can convert manually later with:");
+            eprintln!("  python3 scripts/json_to_onnx.py\n");
+        }
+        Err(e) => {
+            eprintln!("Warning: Could not run ONNX conversion: {}", e);
+            eprintln!("You can convert manually later with:");
+            eprintln!("  python3 scripts/json_to_onnx.py\n");
+        }
     }
     
     // Now start the web server
