@@ -3,6 +3,7 @@ pub mod data;
 pub mod matrix;
 pub mod model_export;
 pub mod network;
+pub mod onnx_export;
 pub mod utils;
 
 #[cfg(target_arch = "wasm32")]

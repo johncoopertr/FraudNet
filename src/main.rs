@@ -51,6 +51,11 @@ fn main() {
     } else {
         println!("✓ Exported model_circular.json");
     }
+    
+    // Convert JSON models to ONNX format
+    println!("\nConverting models to ONNX format...");
+    println!("Run: python3 scripts/json_to_onnx.py");
+    println!("This will create .onnx files for client-side inference with ONNX Runtime.");
 }
 
 fn test_linear_separable() -> NeuralNetwork {
