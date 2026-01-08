@@ -11,4 +11,4 @@ pub mod wasm;
 // Re-export commonly used types
 pub use matrix::Matrix;
 pub use network::NeuralNetwork;
-pub use data::SyntheticDataGenerator;
+pub use data::{SyntheticDataGenerator, FraudDataGenerator};
