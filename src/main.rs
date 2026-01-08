@@ -6,12 +6,22 @@ mod network;
 mod tests;
 mod utils;
 
-use data::SyntheticDataGenerator;
+use data::{SyntheticDataGenerator, FraudDataGenerator};
+use matrix::Matrix;
 use network::NeuralNetwork;
 
 fn main() {
-    println!("FraudNet - Neural Network Classifier");
-    println!("=====================================\n");
+    println!("FraudNet - Unemployment Insurance Fraud Detection");
+    println!("=================================================\n");
+
+    // Primary use case: Unemployment Insurance Fraud Detection
+    println!("Primary Model: Unemployment Insurance Fraud Detection");
+    println!("-----------------------------------------------------");
+    let fraud_network = test_unemployment_fraud_detection();
+
+    println!("\n\n");
+    println!("Additional Test Models (for validation)");
+    println!("========================================\n");
 
     // Test 1: Simple linearly separable data
     println!("Test 1: Linearly Separable Data");
@@ -33,7 +43,15 @@ fn main() {
     let network3 = test_circular();
     
     // Export trained models to JSON
-    println!("\nExporting trained models to JSON...");
+    println!("\n\nExporting trained models to JSON...");
+    println!("===================================");
+    
+    if let Err(e) = fraud_network.save_to_json("model_fraud_detection.json") {
+        eprintln!("Failed to export fraud detection model: {}", e);
+    } else {
+        println!("✓ Exported model_fraud_detection.json (PRIMARY MODEL)");
+    }
+    
     if let Err(e) = network1.save_to_json("model_linear.json") {
         eprintln!("Failed to export linear model: {}", e);
     } else {
@@ -53,9 +71,12 @@ fn main() {
     }
     
     // Convert JSON models to ONNX format
-    println!("\nConverting models to ONNX format...");
+    println!("\n\nNext Steps");
+    println!("==========");
     println!("Run: python3 scripts/json_to_onnx.py");
     println!("This will create .onnx files for client-side inference with ONNX Runtime.");
+    println!("\nThe fraud detection model can be deployed to detect unemployment insurance fraud in real-time.");
+    println!("See FRAUD_DETECTION.md for detailed documentation on features and usage.");
 }
 
 fn test_linear_separable() -> NeuralNetwork {
@@ -124,5 +145,100 @@ fn test_circular() -> NeuralNetwork {
     println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
     println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
     
+    network
+}
+
+fn test_unemployment_fraud_detection() -> NeuralNetwork {
+    let mut data_gen = FraudDataGenerator::new(42);
+
+    // Generate training data: 1000 samples with 30% fraud rate
+    let (train_inputs, train_targets) = data_gen.generate_fraud_data(1000, 0.30);
+    
+    // Generate testing data: 500 samples with 30% fraud rate
+    let (test_inputs, test_targets) = data_gen.generate_fraud_data(500, 0.30);
+
+    println!("Dataset Information:");
+    println!("  Training samples: {} (70% legitimate, 30% fraudulent)", train_inputs.len());
+    println!("  Testing samples:  {} (70% legitimate, 30% fraudulent)", test_inputs.len());
+    println!("  Input features:   15 (temporal, identity, employment, geographic, behavioral)");
+    println!();
+
+    // Deep network architecture for fraud detection
+    // 15 inputs -> 9 hidden layers -> 1 output
+    // This matches the architecture described in the README
+    let architecture = vec![15, 64, 52, 42, 32, 26, 22, 20, 16, 8, 1];
+    let mut network = NeuralNetwork::new(architecture, 0.08, 12345);
+
+    println!("Network Architecture:");
+    println!("  Input Layer:    15 features");
+    println!("  Hidden Layer 1: 64 neurons (ReLU)");
+    println!("  Hidden Layer 2: 52 neurons (ReLU)");
+    println!("  Hidden Layer 3: 42 neurons (ReLU)");
+    println!("  Hidden Layer 4: 32 neurons (ReLU)");
+    println!("  Hidden Layer 5: 26 neurons (ReLU)");
+    println!("  Hidden Layer 6: 22 neurons (ReLU)");
+    println!("  Hidden Layer 7: 20 neurons (ReLU)");
+    println!("  Hidden Layer 8: 16 neurons (ReLU)");
+    println!("  Hidden Layer 9: 8 neurons (ReLU)");
+    println!("  Output Layer:   1 neuron (Sigmoid) - Fraud probability");
+    println!();
+
+    println!("Training deep neural network for fraud detection...");
+    println!("(This may take a few moments due to the deep architecture)");
+    network.train(&train_inputs, &train_targets, 1500);
+
+    let train_acc = network.evaluate(&train_inputs, &train_targets, 0.5);
+    let test_acc = network.evaluate(&test_inputs, &test_targets, 0.5);
+
+    println!("\nFraud Detection Performance:");
+    println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
+    println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
+
+    // Test on some example scenarios
+    println!("\nExample Fraud Predictions:");
+    println!("  (Threshold: 0.5 - scores >= 0.5 indicate likely fraud)\n");
+
+    // Create a test legitimate claim
+    let legitimate_sample = Matrix::from_vec(15, 1, vec![
+        0.4, 0.1, 0.2,  // Temporal: normal timing
+        0.05, 0.1, 0.1, 0.05,  // Identity: verified
+        0.1, 0.6, 0.2, 0.2,  // Employment: good history
+        0.1, 0.05,  // Geographic: consistent
+        0.2, 0.1,  // Behavioral: normal
+    ]);
+    let legit_score = network.predict(&legitimate_sample).get(0, 0);
+    println!("  Legitimate claim example:  {:.4} ({})", 
+        legit_score, 
+        if legit_score < 0.5 { "PASS" } else { "FLAG" }
+    );
+
+    // Create a test identity fraud claim
+    let identity_fraud_sample = Matrix::from_vec(15, 1, vec![
+        0.2, 0.8, 0.9,  // Temporal: suspicious
+        0.9, 0.8, 0.7, 0.9,  // Identity: red flags
+        0.4, 0.3, 0.5, 0.5,  // Employment: some issues
+        0.6, 0.6,  // Geographic: mismatches
+        0.7, 0.8,  // Behavioral: suspicious
+    ]);
+    let fraud_score = network.predict(&identity_fraud_sample).get(0, 0);
+    println!("  Identity fraud example:    {:.4} ({})", 
+        fraud_score,
+        if fraud_score >= 0.5 { "FLAG" } else { "PASS" }
+    );
+
+    // Create a test concurrent employment fraud
+    let concurrent_fraud_sample = Matrix::from_vec(15, 1, vec![
+        0.3, 0.4, 0.2,  // Temporal: regular
+        0.1, 0.1, 0.1, 0.1,  // Identity: legitimate person
+        0.9, 0.1, 0.9, 0.8,  // Employment: hiding work
+        0.2, 0.1,  // Geographic: consistent
+        0.3, 0.7,  // Behavioral: evasive patterns
+    ]);
+    let concurrent_score = network.predict(&concurrent_fraud_sample).get(0, 0);
+    println!("  Employment fraud example:  {:.4} ({})", 
+        concurrent_score,
+        if concurrent_score >= 0.5 { "FLAG" } else { "PASS" }
+    );
+
     network
 }

@@ -213,4 +213,134 @@ mod tests {
         assert_eq!(network.layer_sizes, loaded_network.layer_sizes);
         assert_eq!(network.learning_rate, loaded_network.learning_rate);
     }
+
+    #[test]
+    fn test_fraud_data_generation() {
+        use crate::data::FraudDataGenerator;
+        
+        let mut fraud_gen = FraudDataGenerator::new(42);
+        let (inputs, targets) = fraud_gen.generate_fraud_data(100, 0.30);
+        
+        // Verify correct number of samples
+        assert_eq!(inputs.len(), 100);
+        assert_eq!(targets.len(), 100);
+        
+        // Verify fraud ratio (30 fraudulent, 70 legitimate)
+        let fraud_count: usize = targets.iter()
+            .filter(|t| t.get(0, 0) > 0.5)
+            .count();
+        assert_eq!(fraud_count, 30);
+        
+        // Verify input dimensions (15 features)
+        for input in &inputs {
+            assert_eq!(input.rows, 15);
+            assert_eq!(input.cols, 1);
+        }
+        
+        // Verify output dimensions (1 target)
+        for target in &targets {
+            assert_eq!(target.rows, 1);
+            assert_eq!(target.cols, 1);
+        }
+        
+        // Verify feature values are in valid range [0, 1]
+        for input in &inputs {
+            for i in 0..15 {
+                let val = input.get(i, 0);
+                assert!(val >= 0.0 && val <= 1.0, 
+                    "Feature {} value {} out of range [0, 1]", i, val);
+            }
+        }
+    }
+
+    #[test]
+    fn test_fraud_detection_network() {
+        use crate::data::FraudDataGenerator;
+        
+        let mut fraud_gen = FraudDataGenerator::new(123);
+        
+        // Generate small dataset for quick test
+        let (train_inputs, train_targets) = fraud_gen.generate_fraud_data(100, 0.30);
+        let (test_inputs, test_targets) = fraud_gen.generate_fraud_data(50, 0.30);
+        
+        // Create fraud detection network (smaller for testing)
+        let mut network = NeuralNetwork::new(vec![15, 32, 16, 8, 1], 0.1, 12345);
+        
+        // Train the network
+        network.train(&train_inputs, &train_targets, 200);
+        
+        // Evaluate performance
+        let train_acc = network.evaluate(&train_inputs, &train_targets, 0.5);
+        let test_acc = network.evaluate(&test_inputs, &test_targets, 0.5);
+        
+        // Network should learn something (> 50% random chance)
+        assert!(train_acc > 0.5, "Training accuracy {} too low", train_acc);
+        assert!(test_acc > 0.4, "Test accuracy {} too low", test_acc);
+        
+        // Test prediction on a clearly fraudulent sample
+        let high_fraud_features = Matrix::from_vec(15, 1, vec![
+            0.1, 0.9, 0.9,  // Temporal: suspicious
+            0.9, 0.9, 0.9, 0.9,  // Identity: many red flags
+            0.9, 0.2, 0.9, 0.9,  // Employment: issues
+            0.9, 0.9,  // Geographic: mismatches
+            0.9, 0.9,  // Behavioral: suspicious
+        ]);
+        
+        let fraud_prediction = network.predict(&high_fraud_features);
+        let fraud_score = fraud_prediction.get(0, 0);
+        
+        // Should produce some output in valid range
+        assert!(fraud_score >= 0.0 && fraud_score <= 1.0, 
+            "Fraud score {} out of range", fraud_score);
+    }
+
+    #[test]
+    fn test_fraud_feature_distinctiveness() {
+        use crate::data::FraudDataGenerator;
+        
+        let mut fraud_gen = FraudDataGenerator::new(999);
+        
+        // Generate samples with different fraud ratios
+        let (all_legit_inputs, all_legit_targets) = fraud_gen.generate_fraud_data(50, 0.0);
+        let (all_fraud_inputs, all_fraud_targets) = fraud_gen.generate_fraud_data(50, 1.0);
+        
+        // Verify correct labels
+        for target in &all_legit_targets {
+            assert_eq!(target.get(0, 0), 0.0);
+        }
+        
+        for target in &all_fraud_targets {
+            assert_eq!(target.get(0, 0), 1.0);
+        }
+        
+        // Calculate mean feature values for each class
+        let mut legit_means = vec![0.0; 15];
+        let mut fraud_means = vec![0.0; 15];
+        
+        for input in &all_legit_inputs {
+            for i in 0..15 {
+                legit_means[i] += input.get(i, 0);
+            }
+        }
+        
+        for input in &all_fraud_inputs {
+            for i in 0..15 {
+                fraud_means[i] += input.get(i, 0);
+            }
+        }
+        
+        for i in 0..15 {
+            legit_means[i] /= all_legit_inputs.len() as f64;
+            fraud_means[i] /= all_fraud_inputs.len() as f64;
+        }
+        
+        // Key fraud indicators should have higher means in fraud samples
+        // Feature 1: Claim frequency
+        // Feature 4: SSN reuse
+        // Feature 6: Address changes
+        assert!(fraud_means[1] > legit_means[1], 
+            "Fraud claim frequency should be higher");
+        assert!(fraud_means[4] > legit_means[4], 
+            "Fraud SSN reuse should be higher");
+    }
 }
