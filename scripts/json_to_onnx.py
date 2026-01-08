@@ -86,10 +86,10 @@ def json_to_onnx(json_path, onnx_path):
         else:
             activation_output = f"activation_{i}"
         
-        # MatMul node: output = input × weight^T
-        # Note: ONNX MatMul expects (batch, in_features) × (in_features, out_features)
-        # But our weights are stored as (out_features, in_features)
-        # So we need to transpose the weight matrix
+        # Gemm node: Generalized Matrix Multiply (matrix multiply + bias)
+        # output = alpha * input × weight^T + beta * bias
+        # ONNX Gemm expects (batch, in_features) × (in_features, out_features)
+        # Our weights are stored as (out_features, in_features), so we use transB=1
         matmul_node = helper.make_node(
             'Gemm',  # Use Gemm for matrix multiplication with optional transpose
             inputs=[input_name, weight_name, bias_name],
