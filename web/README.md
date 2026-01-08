@@ -1,138 +1,172 @@
 # FraudNet Web Demo
 
-This directory contains a client-side web demonstration of the FraudNet neural network running in the browser.
+Client-side neural network inference using **ONNX Runtime Web**.
 
-## Features
+## Overview
 
-- **Pure JavaScript Implementation**: Neural network inference implemented in vanilla JavaScript
-- **No Server Required**: All predictions run locally in your browser
-- **Trained Models**: Pre-trained models exported from Rust and loaded as JSON
-- **Interactive Demo**: Three different classification problems to explore
-
-## Running the Demo
-
-### Option 1: Cargo Command (Recommended)
-
-```bash
-# From the project root directory
-cargo test-web
-```
-
-This command will:
-1. Check if trained models exist, and train them if needed
-2. Start a web server at http://localhost:8000
-3. Automatically open the demo in your browser (if available)
-4. Serve files from the project root so models are accessible
-
-### Option 2: Manual Python Server
-
-```bash
-# From the project root directory (NOT the web/ directory)
-python3 -m http.server 8000
-```
-
-Then open your browser to: http://localhost:8000/web/
-
-**Important:** The server must be started from the project root directory, not the `web/` directory, so that the model JSON files (`model_*.json`) are accessible at the correct paths.
-
-### Option 3: Using Node.js http-server
-
-```bash
-# Install http-server globally (if not already installed)
-npm install -g http-server
-
-# From the project root directory
-http-server
-```
-
-Then navigate to: http://localhost:8080/web/
-
-## Demo Models
-
-### 1. Linear Classifier (3 → 8 → 1)
-- **Problem**: Linearly separable data
-- **Accuracy**: 100% on test set
-- **Use Case**: Simple decision boundaries
-
-### 2. XOR Classifier (2 → 8 → 1)
-- **Problem**: XOR function (non-linearly separable)
-- **Accuracy**: 97% on test set
-- **Use Case**: Classic non-linear problem
-
-### 3. Circular Boundary Classifier (2 → 16 → 8 → 1)
-- **Problem**: Circular decision boundary
-- **Accuracy**: 98% on test set
-- **Use Case**: Complex geometric patterns
+This web demo runs trained neural networks entirely in your browser using ONNX Runtime. The models are:
+- Trained in Rust using backpropagation
+- Exported to ONNX format (industry standard)
+- Loaded and executed client-side with WebAssembly acceleration
+- No server-side processing required
 
 ## Architecture
 
-The client-side implementation includes:
+```
+Rust Training → JSON Export → ONNX Conversion → Browser Inference
+    (CPU)          (disk)       (Python script)    (WASM + WebGL)
+```
 
-- **Matrix Operations**: Pure JavaScript matrix class for computations
-- **Activation Functions**: ReLU (hidden layers) and Sigmoid (output layer)
-- **Forward Pass**: Complete neural network inference
-- **Model Loading**: JSON deserialization of trained weights
+## Running the Demo
 
-## Files
+### Quick Start
 
-- `index.html` - Main demo page with UI
-- `fraudnet.js` - Neural network implementation in JavaScript
-- `../model_*.json` - Exported trained models (in project root)
+From the project root:
+
+```bash
+cargo test-web
+```
+
+This will automatically:
+1. Train models if they don't exist
+2. Convert them to ONNX format
+3. Start a web server
+4. Open your browser to the demo
+
+### Manual Setup
+
+```bash
+# 1. Train models (if not already done)
+cargo run --bin fraudnet
+
+# 2. Convert to ONNX format
+python3 scripts/json_to_onnx.py
+
+# 3. Start web server from project root
+python3 -m http.server 8000
+
+# 4. Open browser to http://localhost:8000/web/
+```
+
+**Important**: The server must be started from the project root directory so that `model_*.onnx` files are accessible at the correct paths.
+
+## Models
+
+The demo includes three pre-trained models:
+
+### 1. Linear Classifier (model_linear.onnx)
+- **Architecture**: 3 → 8 → 1
+- **Problem**: Linearly separable data
+- **Accuracy**: 100% on test set
+- **Use case**: Simple binary classification
+
+### 2. XOR Classifier (model_xor.onnx)
+- **Architecture**: 2 → 8 → 1
+- **Problem**: XOR function (non-linear)
+- **Accuracy**: 97% on test set
+- **Use case**: Non-linearly separable patterns
+
+### 3. Circular Boundary (model_circular.onnx)
+- **Architecture**: 2 → 16 → 8 → 1
+- **Problem**: Circular decision boundary
+- **Accuracy**: 98% on test set
+- **Use case**: Complex geometric patterns
 
 ## Technical Details
 
+### ONNX Runtime Web
+
+The demo uses [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) which provides:
+- WebAssembly-based inference engine
+- WebGL acceleration for matrix operations
+- Industry-standard ONNX model format
+- Cross-browser compatibility
+
 ### Model Format
 
-Models are exported as JSON with the following structure:
+Models are stored in ONNX format with:
+- **Input**: Float32 tensor [1, N] where N is number of features
+- **Output**: Float32 tensor [1, 1] with probability (0-1)
+- **Operations**: Gemm (matrix multiply + bias), ReLU, Sigmoid
+- **IR Version**: 8 for broad compatibility
 
-```json
-{
-  "layer_sizes": [input_size, hidden1, hidden2, ..., output_size],
-  "learning_rate": 0.1,
-  "weights": [
-    {
-      "rows": output_size,
-      "cols": input_size,
-      "data": [...]
-    },
-    ...
-  ],
-  "biases": [
-    {
-      "rows": output_size,
-      "cols": 1,
-      "data": [...]
-    },
-    ...
-  ]
-}
-```
+### Performance
 
-### Inference Process
+- **Model Loading**: < 100ms for all three models
+- **Inference Time**: < 1ms per prediction
+- **Memory Usage**: < 1MB total
+- **Network Traffic**: Zero after initial load (all local)
 
-1. Load model JSON from file
-2. Deserialize weights and biases into Matrix objects
-3. For each prediction:
-   - Forward pass through layers
-   - Apply ReLU activation to hidden layers
-   - Apply Sigmoid activation to output layer
-   - Return prediction value
+## How It Works
+
+1. **Training** (Rust):
+   ```rust
+   let mut network = NeuralNetwork::new(vec![3, 8, 1], 0.1, 12345);
+   network.train(&inputs, &targets, 500);
+   network.save_to_json("model.json")?;
+   ```
+
+2. **Conversion** (Python):
+   ```python
+   # Convert JSON to ONNX using onnx helper
+   model_def = helper.make_model(graph_def, producer_name='FraudNet')
+   onnx.save(model_def, "model.onnx")
+   ```
+
+3. **Inference** (Browser):
+   ```javascript
+   const session = await ort.InferenceSession.create('model.onnx');
+   const tensor = new ort.Tensor('float32', inputData, [1, 3]);
+   const results = await session.run({ input: tensor });
+   const prediction = results.output.data[0];
+   ```
 
 ## Browser Compatibility
 
 Tested and working on:
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
+- ✅ Chrome/Edge (Chromium)
+- ✅ Firefox
+- ✅ Safari
+- ✅ Mobile browsers (iOS Safari, Chrome Android)
 
 Requires:
-- Modern JavaScript (ES6+)
-- Fetch API support
-- JSON parsing
+- ES2017+ JavaScript support
+- WebAssembly support
+- Fetch API
 
-## Performance
+## Troubleshooting
 
-- Model loading: < 100ms
-- Single prediction: < 1ms
-- No network requests after initial load
-- All computation happens client-side
+### Models not loading?
+
+**Error**: `Failed to fetch model_*.onnx`
+
+**Solution**: Make sure the web server is running from the project root directory:
+
+```bash
+# ❌ Wrong
+cd web && python3 -m http.server 8000
+
+# ✅ Correct
+python3 -m http.server 8000  # from project root
+```
+
+### ONNX Runtime errors?
+
+**Error**: `Cannot find module 'ort'`
+
+**Solution**: The demo uses ONNX Runtime from CDN. Make sure you have internet connectivity.
+
+### Models not found after training?
+
+**Solution**: Run the conversion script:
+
+```bash
+python3 scripts/json_to_onnx.py
+```
+
+## Resources
+
+- [ONNX Runtime Documentation](https://onnxruntime.ai/)
+- [ONNX Model Format Specification](https://onnx.ai/)
+- [FraudNet Main README](../README.md)
+- [Testing Guide](../TESTING.md)

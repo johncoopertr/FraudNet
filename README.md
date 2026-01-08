@@ -1,13 +1,13 @@
 # FraudNet
-A deep-learning network built in Rust for detecting Fraud Waste and Abuse. Models can be exported to JSON and run client-side in web browsers.
+A deep-learning network built in Rust for detecting Fraud Waste and Abuse. Models are trained in Rust and exported to ONNX format for client-side inference using ONNX Runtime.
 
 ## Features
 
-- 🧠 **Pure Rust Neural Network**: Lightweight, dependency-free implementation
+- 🧠 **Pure Rust Neural Network**: Lightweight, dependency-free training implementation
 - 📊 **Multiple Architectures**: Supports arbitrary network topologies
-- 🌐 **Client-Side Inference**: Export trained models to run in web browsers
-- 🚀 **High Performance**: Optimized matrix operations
-- 🔄 **Model Serialization**: Save and load models as JSON
+- 🌐 **Client-Side Inference**: Export trained models to ONNX for browser execution
+- 🚀 **High Performance**: Optimized matrix operations and WebAssembly acceleration
+- 🔄 **ONNX Format**: Industry-standard model format with ONNX Runtime Web
 - ✅ **Comprehensive Tests**: Full test coverage of core functionality
 
 ## Quick Start
@@ -16,12 +16,17 @@ A deep-learning network built in Rust for detecting Fraud Waste and Abuse. Model
 
 ```bash
 # Build and run the training
-cargo run
+cargo run --bin fraudnet
 
 # This will:
 # 1. Train three different neural networks
 # 2. Export them to JSON (model_*.json)
 # 3. Display training results
+
+# Convert JSON models to ONNX format
+python3 scripts/json_to_onnx.py
+
+# This creates model_*.onnx files for client-side use
 ```
 
 ### Run Client-Side Demo
@@ -47,7 +52,7 @@ python3 -m http.server 8000
 # Open browser to http://localhost:8000/web/
 ```
 
-**Note:** The server must be run from the project root directory (not `web/`) so that the model JSON files are accessible at the correct paths.
+**Note:** The server must be run from the project root directory (not `web/`) so that the ONNX model files are accessible at the correct paths.
 
 See [web/README.md](web/README.md) for more details on the browser demo.
 
@@ -122,11 +127,11 @@ Output Layer (1 neuron, Sigmoid)
 - **Activation Functions**: ReLU for hidden layers, Sigmoid for output layer
 - **Initialization**: Xavier/Glorot initialization for weights
 - **Training**: Backpropagation with gradient descent
-- **Export Format**: JSON serialization for client-side use
+- **Export Format**: ONNX format for universal compatibility
 
 ## Model Export & Client-Side Inference
 
-The trained neural networks can be exported to JSON format and run entirely in web browsers:
+The trained neural networks are exported to ONNX format and run entirely in web browsers using ONNX Runtime Web:
 
 ```rust
 // Train a model
@@ -135,21 +140,24 @@ network.train(&train_inputs, &train_targets, 500);
 
 // Export to JSON
 network.save_to_json("model.json")?;
-
-// Load from JSON
-let loaded = NeuralNetwork::load_from_json("model.json")?;
 ```
 
-The exported models can then be loaded and used in JavaScript:
+Then convert to ONNX:
+
+```bash
+python3 scripts/json_to_onnx.py
+```
+
+The ONNX models can be loaded in the browser using ONNX Runtime Web:
 
 ```javascript
 // Load model in browser
-const response = await fetch('model.json');
-const modelData = await response.json();
-const network = new NeuralNetwork(modelData);
+const session = await ort.InferenceSession.create('model.onnx');
 
 // Run inference
-const prediction = network.predict([0.5, 0.3, 0.2]);
+const inputTensor = new ort.Tensor('float32', [0.5, 0.3, 0.2], [1, 3]);
+const results = await session.run({ input: inputTensor });
+const prediction = results.output.data[0];
 ```
 
 See [web/README.md](web/README.md) for the complete client-side demo.
@@ -162,8 +170,8 @@ Run the test suite:
 # Rust tests
 cargo test
 
-# Client-side JavaScript tests
-node test_client_side.cjs
+# Test ONNX model export and inference
+python3 scripts/test_onnx_models.py
 
 # Interactive web demo (with automatic server setup)
 cargo test-web
