@@ -23,6 +23,10 @@ Thumbs.db
 # model_*.json
 # model_*.onnx
 
+# Environment variables (contains database credentials)
+.env
+demo_data.json
+
 
 # Added by cargo
 #
