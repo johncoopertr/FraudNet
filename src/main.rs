@@ -5,12 +5,18 @@ mod model_export;
 mod network;
 mod tests;
 mod utils;
+mod db_schema;
+mod db_loader;
 
 use data::{SyntheticDataGenerator, FraudDataGenerator};
 use matrix::Matrix;
 use network::NeuralNetwork;
+use db_loader::{DatabaseConfig, load_from_database, split_data, records_to_training_data, export_demo_data};
 
 fn main() {
+    // Load environment variables from .env file
+    dotenv::dotenv().ok();
+    
     println!("FraudNet - Unemployment Insurance Fraud Detection");
     println!("=================================================\n");
 
@@ -149,19 +155,78 @@ fn test_circular() -> NeuralNetwork {
 }
 
 fn test_unemployment_fraud_detection() -> NeuralNetwork {
-    let mut data_gen = FraudDataGenerator::new(42);
-
-    // Generate training data: 1000 samples with 30% fraud rate
-    let (train_inputs, train_targets) = data_gen.generate_fraud_data(1000, 0.30);
+    // Try to load real data from database if configured
+    let use_real_data = match DatabaseConfig::from_env() {
+        Ok(config) => {
+            println!("Database configuration found. Attempting to load real data...");
+            match load_from_database(&config) {
+                Ok(records) => {
+                    println!("✓ Successfully loaded {} records from database", records.len());
+                    
+                    // Split data into training, testing, and demo sets
+                    let (train_records, test_records, demo_records) = split_data(records, &config);
+                    
+                    println!("\nData Split:");
+                    println!("  Training records: {}", train_records.len());
+                    println!("  Testing records:  {}", test_records.len());
+                    println!("  Demo records:     {}", demo_records.len());
+                    
+                    // Export demo data for web demonstration
+                    if !demo_records.is_empty() {
+                        if let Err(e) = export_demo_data(&demo_records, "demo_data.json") {
+                            eprintln!("Warning: Failed to export demo data: {}", e);
+                        }
+                    }
+                    
+                    // Convert to training format
+                    let (train_inputs, train_targets) = records_to_training_data(&train_records);
+                    let (test_inputs, test_targets) = records_to_training_data(&test_records);
+                    
+                    println!("\nDataset Information:");
+                    println!("  Data source:      Real database records");
+                    println!("  Training samples: {}", train_inputs.len());
+                    println!("  Testing samples:  {}", test_inputs.len());
+                    println!("  Input features:   15 (temporal, identity, employment, geographic, behavioral)");
+                    println!();
+                    
+                    Some((train_inputs, train_targets, test_inputs, test_targets))
+                }
+                Err(e) => {
+                    eprintln!("Failed to load from database: {}", e);
+                    eprintln!("Falling back to synthetic data generation...\n");
+                    None
+                }
+            }
+        }
+        Err(_) => {
+            println!("No database configuration found (.env file not present)");
+            println!("Using synthetic data for training and testing...\n");
+            None
+        }
+    };
     
-    // Generate testing data: 500 samples with 30% fraud rate
-    let (test_inputs, test_targets) = data_gen.generate_fraud_data(500, 0.30);
-
-    println!("Dataset Information:");
-    println!("  Training samples: {} (70% legitimate, 30% fraudulent)", train_inputs.len());
-    println!("  Testing samples:  {} (70% legitimate, 30% fraudulent)", test_inputs.len());
-    println!("  Input features:   15 (temporal, identity, employment, geographic, behavioral)");
-    println!();
+    // Use real data if available, otherwise generate synthetic data
+    let (train_inputs, train_targets, test_inputs, test_targets) = match use_real_data {
+        Some(data) => data,
+        None => {
+            let mut data_gen = FraudDataGenerator::new(42);
+            
+            // Generate training data: 1000 samples with 30% fraud rate
+            let (train_inputs, train_targets) = data_gen.generate_fraud_data(1000, 0.30);
+            
+            // Generate testing data: 500 samples with 30% fraud rate
+            let (test_inputs, test_targets) = data_gen.generate_fraud_data(500, 0.30);
+            
+            println!("Dataset Information:");
+            println!("  Data source:      Synthetic data generation");
+            println!("  Training samples: {} (70% legitimate, 30% fraudulent)", train_inputs.len());
+            println!("  Testing samples:  {} (70% legitimate, 30% fraudulent)", test_inputs.len());
+            println!("  Input features:   15 (temporal, identity, employment, geographic, behavioral)");
+            println!();
+            
+            (train_inputs, train_targets, test_inputs, test_targets)
+        }
+    };
 
     // Deep network architecture for fraud detection
     // 15 inputs -> 9 hidden layers -> 1 output
