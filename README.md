@@ -23,27 +23,27 @@ See [FRAUD_DETECTION.md](FRAUD_DETECTION.md) for detailed documentation on fraud
 - 🔄 **ONNX Format**: Industry-standard model format with ONNX Runtime Web
 - ✅ **Comprehensive Tests**: Full test coverage of core functionality
 - 🔍 **Multiple Fraud Types**: Detects identity, employment, geographic, and application fraud
-- 💾 **Real Data Support**: Load training data from PostgreSQL database
+- 💾 **Real Data Support**: Load training data from Microsoft SQL Server database
 - 🧪 **Synthetic Fallback**: Automatic fallback to synthetic data when database is unavailable
 
 ## Quick Start
 
 ### Train with Real Data (Optional)
 
-FraudNet can consume real unemployment insurance claim data from a PostgreSQL database:
+FraudNet can consume real unemployment insurance claim data from a Microsoft SQL Server database:
 
 ```bash
 # 1. Copy the example environment file
 cp .env.example .env
 
 # 2. Edit .env and configure your database connection
-# DATABASE_URL=postgres://username:password@host:port/database
+# DATABASE_URL=Server=hostname;Database=fraudnet;User Id=username;Password=password;TrustServerCertificate=true
 
 # 3. Build and run with database support
 cargo run --features database
 
 # This will:
-# - Connect to your PostgreSQL database
+# - Connect to your Microsoft SQL Server database
 # - Load and validate claim records
 # - Split data into training (70%), testing (20%), and demo (10%) sets
 # - Train the neural network on real data

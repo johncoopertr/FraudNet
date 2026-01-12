@@ -1,10 +1,14 @@
 /// Database loader for fetching unemployment insurance claim data
 /// 
-/// This module handles connecting to a PostgreSQL database and loading
+/// This module handles connecting to a Microsoft SQL Server database and loading
 /// claim records for training, testing, and demo purposes.
 
 #[cfg(feature = "database")]
-use postgres::{Client, NoTls};
+use tiberius::{Client, Config};
+#[cfg(feature = "database")]
+use tokio::net::TcpStream;
+#[cfg(feature = "database")]
+use tokio_util::compat::TokioAsyncWriteCompatExt;
 
 use crate::db_schema::ClaimRecord;
 use crate::matrix::Matrix;
@@ -29,7 +33,7 @@ impl DatabaseConfig {
     /// Load configuration from environment variables
     /// 
     /// Expected environment variables:
-    /// - DATABASE_URL: PostgreSQL connection string
+    /// - DATABASE_URL: SQL Server connection string
     /// - TRAIN_SPLIT: Percentage of data for training (default: 0.7)
     /// - TEST_SPLIT: Percentage of data for testing (default: 0.2)
     /// - DEMO_SPLIT: Percentage of data for demo (default: 0.1)
@@ -135,88 +139,112 @@ pub fn records_to_training_data(records: &[ClaimRecord]) -> (Vec<Matrix>, Vec<Ma
 }
 
 #[cfg(feature = "database")]
-/// Load claim records from PostgreSQL database
+/// Load claim records from Microsoft SQL Server database
 /// 
-/// Note: This function uses NoTls for simplicity. For production use with remote databases,
-/// consider using SSL/TLS by:
-/// 1. Adding `postgres-native-tls` or `postgres-openssl` as a dependency
-/// 2. Replacing NoTls with a TLS connector
-/// 3. Using a connection string like: postgres://user:pass@host:5432/db?sslmode=require
+/// Note: This function uses TLS by default with rustls for secure connections.
+/// Connection string format: Server=hostname;Database=dbname;User Id=username;Password=password;TrustServerCertificate=true
 pub fn load_from_database(config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, String> {
-    // Connect to the database (NoTls - for production, consider using TLS)
-    let mut client = Client::connect(&config.connection_string, NoTls)
-        .map_err(|e| format!("Failed to connect to database: {}", e))?;
+    // Parse connection string
+    let mut cfg = Config::from_ado_string(&config.connection_string)
+        .map_err(|e| format!("Failed to parse connection string: {}", e))?;
     
-    println!("Connected to database successfully");
+    // Enable encryption
+    cfg.encryption(tiberius::EncryptionLevel::Required);
+    cfg.trust_cert();
     
-    // Query all records
-    let query = "
-        SELECT 
-            id, claim_id,
-            days_since_last_claim, claim_frequency, time_anomaly,
-            ssn_reuse_score, age_verification_score, address_change_frequency, ip_reuse_count,
-            employer_verification, employment_duration, wage_consistency, separation_risk,
-            ip_address_match, multi_state_filing,
-            document_quality, response_pattern,
-            is_fraud
-        FROM unemployment_claims
-        ORDER BY id
-    ";
+    // Create tokio runtime for async operations
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create runtime: {}", e))?;
     
-    let rows = client.query(query, &[])
-        .map_err(|e| format!("Failed to query database: {}", e))?;
-    
-    println!("Fetched {} records from database", rows.len());
-    
-    let mut records = Vec::new();
-    let mut skipped_count = 0;
-    
-    for row in rows {
-        let record = ClaimRecord {
-            id: row.get(0),
-            claim_id: row.get(1),
-            days_since_last_claim: row.get(2),
-            claim_frequency: row.get(3),
-            time_anomaly: row.get(4),
-            ssn_reuse_score: row.get(5),
-            age_verification_score: row.get(6),
-            address_change_frequency: row.get(7),
-            ip_reuse_count: row.get(8),
-            employer_verification: row.get(9),
-            employment_duration: row.get(10),
-            wage_consistency: row.get(11),
-            separation_risk: row.get(12),
-            ip_address_match: row.get(13),
-            multi_state_filing: row.get(14),
-            document_quality: row.get(15),
-            response_pattern: row.get(16),
-            is_fraud: row.get(17),
-        };
+    rt.block_on(async {
+        // Connect to SQL Server
+        let tcp = TcpStream::connect(cfg.get_addr())
+            .await
+            .map_err(|e| format!("Failed to connect to SQL Server: {}", e))?;
         
-        // Validate record
-        if let Err(e) = record.validate() {
-            eprintln!("Warning: Skipping invalid record {}: {}", 
-                record.claim_id.as_deref().unwrap_or("unknown"), 
-                e
-            );
-            skipped_count += 1;
-            continue;
+        tcp.set_nodelay(true)
+            .map_err(|e| format!("Failed to set nodelay: {}", e))?;
+        
+        let mut client = Client::connect(cfg, tcp.compat_write())
+            .await
+            .map_err(|e| format!("Failed to authenticate with SQL Server: {}", e))?;
+        
+        println!("Connected to SQL Server successfully");
+        
+        // Query all records
+        let query = "
+            SELECT 
+                id, claim_id,
+                days_since_last_claim, claim_frequency, time_anomaly,
+                ssn_reuse_score, age_verification_score, address_change_frequency, ip_reuse_count,
+                employer_verification, employment_duration, wage_consistency, separation_risk,
+                ip_address_match, multi_state_filing,
+                document_quality, response_pattern,
+                is_fraud
+            FROM unemployment_claims
+            ORDER BY id
+        ";
+        
+        let stream = client.query(query, &[])
+            .await
+            .map_err(|e| format!("Failed to query database: {}", e))?;
+        
+        let rows = stream.into_first_result()
+            .await
+            .map_err(|e| format!("Failed to fetch results: {}", e))?;
+        
+        println!("Fetched {} records from database", rows.len());
+        
+        let mut records = Vec::new();
+        let mut skipped_count = 0;
+        
+        for row in rows {
+            let record = ClaimRecord {
+                id: row.get::<i32, _>(0),
+                claim_id: row.get::<&str, _>(1).map(|s| s.to_string()),
+                days_since_last_claim: row.get::<f64, _>(2).unwrap_or(0.0),
+                claim_frequency: row.get::<f64, _>(3).unwrap_or(0.0),
+                time_anomaly: row.get::<f64, _>(4).unwrap_or(0.0),
+                ssn_reuse_score: row.get::<f64, _>(5).unwrap_or(0.0),
+                age_verification_score: row.get::<f64, _>(6).unwrap_or(0.0),
+                address_change_frequency: row.get::<f64, _>(7).unwrap_or(0.0),
+                ip_reuse_count: row.get::<f64, _>(8).unwrap_or(0.0),
+                employer_verification: row.get::<f64, _>(9).unwrap_or(0.0),
+                employment_duration: row.get::<f64, _>(10).unwrap_or(0.0),
+                wage_consistency: row.get::<f64, _>(11).unwrap_or(0.0),
+                separation_risk: row.get::<f64, _>(12).unwrap_or(0.0),
+                ip_address_match: row.get::<f64, _>(13).unwrap_or(0.0),
+                multi_state_filing: row.get::<f64, _>(14).unwrap_or(0.0),
+                document_quality: row.get::<f64, _>(15).unwrap_or(0.0),
+                response_pattern: row.get::<f64, _>(16).unwrap_or(0.0),
+                is_fraud: row.get::<f64, _>(17).unwrap_or(0.0),
+            };
+            
+            // Validate record
+            if let Err(e) = record.validate() {
+                eprintln!("Warning: Skipping invalid record {}: {}", 
+                    record.claim_id.as_deref().unwrap_or("unknown"), 
+                    e
+                );
+                skipped_count += 1;
+                continue;
+            }
+            
+            records.push(record);
         }
         
-        records.push(record);
-    }
-    
-    if skipped_count > 0 {
-        println!("Skipped {} invalid records", skipped_count);
-    }
-    
-    if records.is_empty() {
-        return Err("No valid records found in database".to_string());
-    }
-    
-    println!("Loaded {} valid records", records.len());
-    
-    Ok(records)
+        if skipped_count > 0 {
+            println!("Skipped {} invalid records", skipped_count);
+        }
+        
+        if records.is_empty() {
+            return Err("No valid records found in database".to_string());
+        }
+        
+        println!("Loaded {} valid records", records.len());
+        
+        Ok(records)
+    })
 }
 
 #[cfg(not(feature = "database"))]

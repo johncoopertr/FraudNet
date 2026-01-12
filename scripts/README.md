@@ -1,6 +1,6 @@
 # Database Scripts for FraudNet
 
-This directory contains SQL scripts to help set up and populate the PostgreSQL database for FraudNet fraud detection training.
+This directory contains SQL scripts to help set up and populate the Microsoft SQL Server database for FraudNet fraud detection training.
 
 ## Files
 
@@ -12,14 +12,14 @@ This directory contains SQL scripts to help set up and populate the PostgreSQL d
 
 ### 1. Create the Database
 
-First, create a PostgreSQL database for FraudNet:
+First, create a Microsoft SQL Server database for FraudNet:
 
 ```bash
 # Create database (if it doesn't exist)
-createdb fraudnet
+sqlcmd -Q "CREATE DATABASE fraudnet
 
 # Or using psql
-psql -U postgres -c "CREATE DATABASE fraudnet;"
+sqlcmd -U postgres -c "CREATE DATABASE fraudnet;"
 ```
 
 ### 2. Create the Schema
@@ -27,7 +27,7 @@ psql -U postgres -c "CREATE DATABASE fraudnet;"
 Run the schema creation script:
 
 ```bash
-psql -U username -d fraudnet -f scripts/create_schema.sql
+sqlcmd -U username -d fraudnet -f scripts/create_schema.sql
 ```
 
 This will:
@@ -41,7 +41,7 @@ This will:
 Load some test data to verify the setup:
 
 ```bash
-psql -U username -d fraudnet -f scripts/sample_data.sql
+sqlcmd -U username -d fraudnet -f scripts/sample_data.sql
 ```
 
 This inserts:
@@ -53,7 +53,7 @@ This inserts:
 Check that the data was loaded correctly:
 
 ```sql
-psql -U username -d fraudnet
+sqlcmd -U username -d fraudnet
 
 -- Count records
 SELECT COUNT(*) FROM unemployment_claims;
@@ -166,7 +166,7 @@ Once your database is set up:
    cargo run --features database
    ```
 3. The program will:
-   - Load data from PostgreSQL
+   - Load data from Microsoft SQL Server
    - Split it into training/testing/demo sets
    - Train the neural network
    - Export the trained model and demo data
@@ -185,12 +185,12 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO username;
 
 ### Connection Failed
 
-Verify PostgreSQL is running:
+Verify Microsoft SQL Server is running:
 ```bash
-# Check if PostgreSQL is running
+# Check if Microsoft SQL Server is running
 pg_isready
 
-# Check PostgreSQL status
+# Check Microsoft SQL Server status
 systemctl status postgresql  # Linux
 brew services list  # macOS
 ```
@@ -201,6 +201,6 @@ If inserts fail due to CHECK constraints, verify all values are in [0.0, 1.0] ra
 
 ## Additional Resources
 
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Microsoft SQL Server Documentation](https://www.postgresql.org/docs/)
 - [FraudNet Database Setup Guide](../DATABASE_SETUP.md)
 - [FraudNet Fraud Detection Documentation](../FRAUD_DETECTION.md)

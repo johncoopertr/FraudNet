@@ -1,14 +1,14 @@
 # Database Setup Guide for FraudNet
 
-This guide explains how to configure FraudNet to use real data from a PostgreSQL database for training and testing the fraud detection neural network.
+This guide explains how to configure FraudNet to use real data from a Microsoft SQL Server database for training and testing the fraud detection neural network.
 
 ## Overview
 
-FraudNet can consume real unemployment insurance claim data from a PostgreSQL database. The data should be stored with 15 normalized features (0.0 to 1.0) that match the neural network's expected input format.
+FraudNet can consume real unemployment insurance claim data from a Microsoft SQL Server database. The data should be stored with 15 normalized features (0.0 to 1.0) that match the neural network's expected input format.
 
 ## Prerequisites
 
-- PostgreSQL server (version 9.5 or later)
+- Microsoft SQL Server server (version 9.5 or later)
 - Database with unemployment claims data
 - Network access to the database server
 
@@ -104,7 +104,7 @@ cp .env.example .env
 Open `.env` and configure your database connection:
 
 ```env
-# PostgreSQL Connection String
+# Microsoft SQL Server Connection String
 DATABASE_URL=postgres://username:password@hostname:5432/database_name
 
 # Data Split Configuration (must sum to 1.0)
@@ -144,7 +144,7 @@ cargo run --features database
 
 FraudNet will:
 1. Load environment variables from `.env`
-2. Connect to your PostgreSQL database
+2. Connect to your Microsoft SQL Server database
 3. Fetch all records from the `unemployment_claims` table
 4. Validate all data (ensuring values are in [0.0, 1.0] range)
 5. Split data into training (70%), testing (20%), and demo (10%) sets

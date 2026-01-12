@@ -1,8 +1,9 @@
--- Sample Data Insertion Script for FraudNet
+-- Sample Data Insertion Script for FraudNet (Microsoft SQL Server)
 -- This script provides example data to test the database integration
 -- 
 -- Usage:
---   psql -U username -d database_name -f sample_data.sql
+--   sqlcmd -S server_name -d database_name -i sample_data.sql
+--   Or execute in SQL Server Management Studio
 
 -- First, ensure the table exists (from DATABASE_SETUP.md)
 -- If it doesn't exist, run the CREATE TABLE statement first
@@ -113,6 +114,7 @@ INSERT INTO unemployment_claims (
     ('LEGIT_008', 0.58, 0.11, 0.21, 0.04, 0.14, 0.09, 0.06, 0.09, 0.64, 0.16, 0.21, 0.14, 0.0, 0.21, 0.14, 0.0),
     ('LEGIT_009', 0.52, 0.09, 0.17, 0.03, 0.09, 0.07, 0.04, 0.07, 0.69, 0.13, 0.17, 0.12, 0.0, 0.17, 0.09, 0.0),
     ('LEGIT_010', 0.67, 0.04, 0.16, 0.01, 0.06, 0.04, 0.02, 0.04, 0.81, 0.09, 0.14, 0.09, 0.0, 0.14, 0.06, 0.0);
+GO
 
 -- Verify the data was inserted
 SELECT 
@@ -120,14 +122,15 @@ SELECT
     SUM(CASE WHEN is_fraud = 0 THEN 1 ELSE 0 END) as legitimate_claims,
     SUM(CASE WHEN is_fraud = 1 THEN 1 ELSE 0 END) as fraudulent_claims
 FROM unemployment_claims;
+GO
 
 -- Show a sample of the data
-SELECT 
+SELECT TOP 10
     claim_id,
     days_since_last_claim,
     ssn_reuse_score,
     employer_verification,
     is_fraud
 FROM unemployment_claims
-ORDER BY is_fraud DESC, claim_id
-LIMIT 10;
+ORDER BY is_fraud DESC, claim_id;
+GO

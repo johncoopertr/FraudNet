@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds the capability for FraudNet to consume real unemployment insurance claim data from a PostgreSQL database for training and testing the fraud detection neural network.
+This implementation adds the capability for FraudNet to consume real unemployment insurance claim data from a Microsoft SQL Server database for training and testing the fraud detection neural network.
 
 ## What Was Implemented
 
@@ -14,7 +14,7 @@ This implementation adds the capability for FraudNet to consume real unemploymen
 
 ### 2. Database Loader (`src/db_loader.rs`)
 - `DatabaseConfig` - Configuration management from environment variables
-- `load_from_database()` - Connects to PostgreSQL and fetches records
+- `load_from_database()` - Connects to Microsoft SQL Server and fetches records
 - `split_data()` - Splits data into training/testing/demo sets
 - `records_to_training_data()` - Converts records to Matrix format for neural network
 - `export_demo_data()` - Exports demo records as JSON for web UI
@@ -54,7 +54,7 @@ This implementation adds the capability for FraudNet to consume real unemploymen
 ```
 1. User creates .env file with database credentials
 2. FraudNet loads environment variables on startup
-3. Attempts to connect to PostgreSQL database
+3. Attempts to connect to Microsoft SQL Server database
 4. If successful:
    a. Fetches all records from unemployment_claims table
    b. Validates each record (features in [0.0, 1.0])
@@ -69,7 +69,7 @@ This implementation adds the capability for FraudNet to consume real unemploymen
 
 ### Data Flow
 ```
-PostgreSQL Database
+Microsoft SQL Server Database
     ↓
 load_from_database()
     ↓
@@ -286,7 +286,7 @@ Potential improvements for future iterations:
 
 ## Conclusion
 
-This implementation successfully delivers a production-ready solution for consuming real unemployment insurance claim data from PostgreSQL databases. The system is:
+This implementation successfully delivers a production-ready solution for consuming real unemployment insurance claim data from Microsoft SQL Server databases. The system is:
 
 - **Secure** - Credentials protected, validation enforced
 - **Flexible** - Works with or without database
