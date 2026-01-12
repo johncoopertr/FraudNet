@@ -161,7 +161,6 @@ fn test_unemployment_fraud_detection() -> NeuralNetwork {
     let use_real_data = match DatabaseConfig::from_env() {
         Ok(config) => {
             println!("Database configuration found. Attempting to load real data...");
-            let demo_file = config.demo_output_file.clone();
             match load_from_database(&config) {
                 Ok(records) => {
                     println!("✓ Successfully loaded {} records from database", records.len());
@@ -176,7 +175,7 @@ fn test_unemployment_fraud_detection() -> NeuralNetwork {
                     
                     // Export demo data for web demonstration
                     if !demo_records.is_empty() {
-                        if let Err(e) = export_demo_data(&demo_records, &demo_file) {
+                        if let Err(e) = export_demo_data(&demo_records, &config.demo_output_file) {
                             eprintln!("Warning: Failed to export demo data: {}", e);
                         }
                     }

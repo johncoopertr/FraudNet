@@ -10,6 +10,10 @@ use crate::db_schema::ClaimRecord;
 use crate::matrix::Matrix;
 use std::env;
 
+/// Tolerance for validating that data splits sum to 1.0
+/// Allows for minor floating-point rounding differences
+const SPLIT_TOLERANCE: f64 = 0.01;
+
 /// Configuration for database connection
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -59,9 +63,7 @@ impl DatabaseConfig {
             .unwrap_or_else(|_| "demo_data.json".to_string());
         
         // Validate splits sum to approximately 1.0
-        // Tolerance of 0.01 allows for minor floating-point rounding differences
-        // while ensuring splits are reasonably close to 100%
-        const SPLIT_TOLERANCE: f64 = 0.01;
+        // Using module-level constant SPLIT_TOLERANCE
         let total = train_split + test_split + demo_split;
         if (total - 1.0).abs() > SPLIT_TOLERANCE {
             return Err(format!(
@@ -82,6 +84,11 @@ impl DatabaseConfig {
 }
 
 /// Split dataset into training, testing, and demo sets
+/// 
+/// Note: This function performs a sequential split (not randomized).
+/// Records are split in the order they are provided. If your data
+/// is ordered by time or other factors, consider shuffling before
+/// calling this function to avoid temporal or ordering bias.
 pub fn split_data(
     records: Vec<ClaimRecord>,
     config: &DatabaseConfig,
@@ -219,7 +226,14 @@ pub fn load_from_database(_config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, 
 }
 
 /// Export demo data to JSON file for web demonstration
+/// 
+/// Security: Validates filename to prevent directory traversal attacks
 pub fn export_demo_data(records: &[ClaimRecord], filename: &str) -> Result<(), String> {
+    // Validate filename to prevent directory traversal
+    if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
+        return Err("Invalid filename: must not contain path separators or '..'".to_string());
+    }
+    
     let json = serde_json::to_string_pretty(records)
         .map_err(|e| format!("Failed to serialize demo data: {}", e))?;
     
