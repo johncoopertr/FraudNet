@@ -59,6 +59,8 @@ impl DatabaseConfig {
             .unwrap_or_else(|_| "demo_data.json".to_string());
         
         // Validate splits sum to approximately 1.0
+        // Tolerance of 0.01 allows for minor floating-point rounding differences
+        // while ensuring splits are reasonably close to 100%
         const SPLIT_TOLERANCE: f64 = 0.01;
         let total = train_split + test_split + demo_split;
         if (total - 1.0).abs() > SPLIT_TOLERANCE {
@@ -160,6 +162,7 @@ pub fn load_from_database(config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, S
     println!("Fetched {} records from database", rows.len());
     
     let mut records = Vec::new();
+    let mut skipped_count = 0;
     
     for row in rows {
         let record = ClaimRecord {
@@ -189,10 +192,15 @@ pub fn load_from_database(config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, S
                 record.claim_id.as_deref().unwrap_or("unknown"), 
                 e
             );
+            skipped_count += 1;
             continue;
         }
         
         records.push(record);
+    }
+    
+    if skipped_count > 0 {
+        println!("Skipped {} invalid records", skipped_count);
     }
     
     if records.is_empty() {

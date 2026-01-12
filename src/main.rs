@@ -14,7 +14,9 @@ use network::NeuralNetwork;
 use db_loader::{DatabaseConfig, load_from_database, split_data, records_to_training_data, export_demo_data};
 
 fn main() {
-    // Load environment variables from .env file
+    // Load environment variables from .env file if it exists
+    // Silently ignoring errors allows the program to work without a .env file
+    // and fall back to synthetic data generation
     dotenv::dotenv().ok();
     
     println!("FraudNet - Unemployment Insurance Fraud Detection");

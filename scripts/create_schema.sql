@@ -5,8 +5,9 @@
 --   psql -U username -d database_name -f create_schema.sql
 
 -- Drop table if it exists (be careful in production!)
--- Uncomment the next line if you want to recreate the table
--- DROP TABLE IF EXISTS unemployment_claims;
+-- WARNING: This will DELETE ALL DATA in the unemployment_claims table!
+-- Only uncomment this line if you are absolutely sure you want to recreate the table
+-- DROP TABLE IF EXISTS unemployment_claims CASCADE;
 
 -- Create the unemployment claims table
 CREATE TABLE IF NOT EXISTS unemployment_claims (
