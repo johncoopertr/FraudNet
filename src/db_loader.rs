@@ -18,6 +18,7 @@ pub struct DatabaseConfig {
     pub test_split: f64,
     pub demo_split: f64,
     pub demo_record_count: usize,
+    pub demo_output_file: String,
 }
 
 impl DatabaseConfig {
@@ -29,6 +30,7 @@ impl DatabaseConfig {
     /// - TEST_SPLIT: Percentage of data for testing (default: 0.2)
     /// - DEMO_SPLIT: Percentage of data for demo (default: 0.1)
     /// - DEMO_RECORD_COUNT: Number of demo records to export (default: 10)
+    /// - DEMO_OUTPUT_FILE: Filename for demo data export (default: demo_data.json)
     pub fn from_env() -> Result<Self, String> {
         let connection_string = env::var("DATABASE_URL")
             .map_err(|_| "DATABASE_URL not found in environment. Please set it in .env file.".to_string())?;
@@ -53,9 +55,13 @@ impl DatabaseConfig {
             .parse::<usize>()
             .map_err(|_| "Invalid DEMO_RECORD_COUNT value".to_string())?;
         
+        let demo_output_file = env::var("DEMO_OUTPUT_FILE")
+            .unwrap_or_else(|_| "demo_data.json".to_string());
+        
         // Validate splits sum to approximately 1.0
+        const SPLIT_TOLERANCE: f64 = 0.01;
         let total = train_split + test_split + demo_split;
-        if (total - 1.0).abs() > 0.01 {
+        if (total - 1.0).abs() > SPLIT_TOLERANCE {
             return Err(format!(
                 "Train, test, and demo splits must sum to 1.0, got {}",
                 total
@@ -68,6 +74,7 @@ impl DatabaseConfig {
             test_split,
             demo_split,
             demo_record_count,
+            demo_output_file,
         })
     }
 }
@@ -120,8 +127,14 @@ pub fn records_to_training_data(records: &[ClaimRecord]) -> (Vec<Matrix>, Vec<Ma
 
 #[cfg(feature = "database")]
 /// Load claim records from PostgreSQL database
+/// 
+/// Note: This function uses NoTls for simplicity. For production use with remote databases,
+/// consider using SSL/TLS by:
+/// 1. Adding `postgres-native-tls` or `postgres-openssl` as a dependency
+/// 2. Replacing NoTls with a TLS connector
+/// 3. Using a connection string like: postgres://user:pass@host:5432/db?sslmode=require
 pub fn load_from_database(config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, String> {
-    // Connect to the database
+    // Connect to the database (NoTls - for production, consider using TLS)
     let mut client = Client::connect(&config.connection_string, NoTls)
         .map_err(|e| format!("Failed to connect to database: {}", e))?;
     
@@ -173,7 +186,7 @@ pub fn load_from_database(config: &DatabaseConfig) -> Result<Vec<ClaimRecord>, S
         // Validate record
         if let Err(e) = record.validate() {
             eprintln!("Warning: Skipping invalid record {}: {}", 
-                record.claim_id.as_ref().unwrap_or(&"unknown".to_string()), 
+                record.claim_id.as_deref().unwrap_or("unknown"), 
                 e
             );
             continue;
@@ -243,6 +256,7 @@ mod tests {
             test_split: 0.2,
             demo_split: 0.1,
             demo_record_count: 5,
+            demo_output_file: "demo_data.json".to_string(),
         };
         
         let (train, test, demo) = split_data(records, &config);
