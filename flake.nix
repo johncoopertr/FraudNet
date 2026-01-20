@@ -47,6 +47,7 @@
           inherit buildInputs nativeBuildInputs;
           
           shellHook = ''
+            export SHELL=/run/current-system/sw/bin/bash
             echo "FraudNet Development Environment"
             echo "Rust version: $(rustc --version)"
             echo "Cargo version: $(cargo --version)"

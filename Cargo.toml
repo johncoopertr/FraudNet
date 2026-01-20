@@ -12,6 +12,8 @@ tiberius = { version = "0.12", optional = true, default-features = false, featur
 tokio = { version = "1", features = ["full"], optional = true }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
 dotenv = "0.15"
+arrow = "53.3.0"
+parquet = "53.3.0"
 
 [features]
 default = []
@@ -23,6 +25,10 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "fraudnet"
 path = "src/main.rs"
+
+[[bin]]
+name = "mnist"
+path = "src/bin/mnist.rs"
 
 [[bin]]
 name = "test-web"
