@@ -180,8 +180,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     
-    println!("\nCNN Training Complete!");
-    println!("Note: Full model export to ONNX not yet implemented for CNN architecture.");
+    // Export trained model to JSON
+    println!("\nExporting trained CNN model...");
+    network.save_to_json("model_mnist_cnn.json")?;
+    println!("  ✓ Saved model_mnist_cnn.json");
+    
+    println!("\nNext Steps:");
+    println!("  1. Run: python3 scripts/cnn_to_onnx.py");
+    println!("     This will convert model_mnist_cnn.json to model_mnist_cnn.onnx");
+    println!("  2. The ONNX model can be used for browser-based inference");
     
     Ok(())
 }

@@ -68,6 +68,7 @@ cargo run --bin mnist
 # 2. Train the CNN for 10 epochs
 # 3. Display accuracy metrics during training
 # 4. Show example predictions
+# 5. Export the trained model to model_mnist_cnn.json
 
 # Note: CNN training on CPU may take significant time.
 # Consider using release mode for faster training:
@@ -76,12 +77,26 @@ cargo run --release --bin mnist
 
 ## Converting to ONNX
 
-**Note**: ONNX export is not yet implemented for the CNN architecture. The current implementation focuses on the CNN architecture and training. Future work will include:
-- ONNX export for CNN models
-- Browser-based inference with ONNX Runtime Web
-- Webcam digit recognition interface
+After training, convert the CNN model to ONNX format for browser use:
 
-For now, the CNN can be trained and evaluated using the Rust implementation.
+```bash
+# Convert JSON model to ONNX
+python3 scripts/cnn_to_onnx.py
+
+# This creates model_mnist_cnn.onnx from model_mnist_cnn.json
+```
+
+The ONNX model includes all CNN layers:
+- Pad layer (zero padding)
+- Conv2d layer with learned filters
+- BatchNormalization layer with running statistics
+- ReLU activation
+- MaxPool layer
+- Flatten operation
+- Gemm (fully connected) layer
+- Softmax activation
+
+This ONNX model can be used with ONNX Runtime Web for browser-based inference.
 
 ## Web Application
 
@@ -137,11 +152,16 @@ python3 scripts/test_mnist_model.py
 FraudNet/
 ├── mnist-train.parquet          # Training dataset (6,000 samples)
 ├── mnist-test.parquet           # Test dataset (1,000 samples)
+├── model_mnist_cnn.json         # Trained CNN model (JSON format)
+├── model_mnist_cnn.onnx         # Trained CNN model (ONNX format)
 ├── src/
 │   ├── cnn.rs                   # CNN implementation (Conv2d, BatchNorm2d, MaxPool2d)
+│   ├── model_export.rs          # Model serialization (includes CNN export)
 │   ├── bin/
 │   │   └── mnist.rs             # CNN training implementation
 │   └── tests.rs                 # Unit tests including CNN tests
+├── scripts/
+│   └── cnn_to_onnx.py           # CNN to ONNX conversion script
 └── MNIST.md                     # This documentation
 ```
 

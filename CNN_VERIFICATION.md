@@ -77,6 +77,7 @@ Total params: 31,818
    - Uses `MnistCNN` instead of `NeuralNetwork`
    - Training with 10 epochs
    - Displays architecture information
+   - Exports trained model to JSON
 
 3. **src/lib.rs**: Added CNN module
    - Exported CNN module for use in binaries
@@ -85,12 +86,23 @@ Total params: 31,818
    - Architecture verification
    - Training step validation
    - Batch normalization modes
+   - JSON export functionality
 
-5. **MNIST.md**: Updated documentation
+5. **src/model_export.rs**: Added CNN serialization support
+   - `SerializedCNN` struct for JSON export
+   - `save_to_json()` and `to_json_str()` methods for MnistCNN
+
+6. **scripts/cnn_to_onnx.py** (NEW): Python script to convert CNN JSON to ONNX
+   - Converts all CNN layers to ONNX operators
+   - Supports Pad, Conv, BatchNormalization, ReLU, MaxPool, Flatten, Gemm, Softmax
+   - Validates ONNX model before saving
+
+7. **MNIST.md**: Updated documentation
    - CNN architecture details
    - Layer-by-layer explanation
    - Parameter counts
    - Training instructions
+   - ONNX conversion instructions
 
 ## Testing
 
@@ -129,4 +141,5 @@ CNN Architecture:
 - Training is CPU-based (no GPU acceleration)
 - Simplified training: only FC layer is updated via backprop for performance
 - Full CNN backpropagation can be added for improved accuracy
-- ONNX export not yet implemented for CNN architecture
+- **ONNX export is now fully implemented** - exports to `model_mnist_cnn.json` and converts to `model_mnist_cnn.onnx`
+- The ONNX model includes all 8 layers and can be used for browser-based inference

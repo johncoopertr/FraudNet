@@ -421,4 +421,25 @@ mod tests {
         assert!((sum1 - 1.0).abs() < 0.001);
         assert!((sum2 - 1.0).abs() < 0.001);
     }
+
+    #[test]
+    fn test_cnn_json_export() {
+        // Create a CNN
+        let network = MnistCNN::new(0.01, 42);
+        
+        // Export to JSON string
+        let json = network.to_json_str().expect("Failed to export CNN to JSON");
+        
+        // Parse to verify structure
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("Failed to parse JSON");
+        
+        // Verify key fields exist
+        assert_eq!(parsed["conv_in_channels"], 1);
+        assert_eq!(parsed["conv_out_channels"], 16);
+        assert_eq!(parsed["conv_kernel_size"], 5);
+        assert_eq!(parsed["bn_num_features"], 16);
+        assert_eq!(parsed["pool_kernel_size"], 2);
+        assert_eq!(parsed["fc_weights"]["rows"], 10);
+        assert_eq!(parsed["fc_weights"]["cols"], 3136);
+    }
 }
