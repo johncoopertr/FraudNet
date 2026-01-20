@@ -125,9 +125,9 @@ impl NeuralNetwork {
 }
 
 impl MnistCNN {
-    /// Export the CNN to a JSON file
-    pub fn save_to_json(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let serialized = SerializedCNN {
+    /// Helper to serialize CNN to SerializedCNN
+    fn to_serialized(&self) -> SerializedCNN {
+        SerializedCNN {
             learning_rate: self.learning_rate,
             // Conv2d layer
             conv_in_channels: self.conv1.in_channels,
@@ -150,42 +150,21 @@ impl MnistCNN {
             // Fully connected layer
             fc_weights: (&self.fc_weights).into(),
             fc_bias: (&self.fc_bias).into(),
-        };
-        
+        }
+    }
+    
+    /// Export the CNN to a JSON file
+    pub fn save_to_json(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let serialized = self.to_serialized();
         let json = serde_json::to_string_pretty(&serialized)?;
         let mut file = File::create(path)?;
         file.write_all(json.as_bytes())?;
-        
         Ok(())
     }
     
     /// Export the CNN to a JSON string
     pub fn to_json_str(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let serialized = SerializedCNN {
-            learning_rate: self.learning_rate,
-            // Conv2d layer
-            conv_in_channels: self.conv1.in_channels,
-            conv_out_channels: self.conv1.out_channels,
-            conv_kernel_size: self.conv1.kernel_size,
-            conv_stride: self.conv1.stride,
-            conv_padding: self.conv1.padding,
-            conv_weights: self.conv1.weights.clone(),
-            conv_bias: self.conv1.bias.clone(),
-            // BatchNorm2d layer
-            bn_num_features: self.bn1.num_features,
-            bn_gamma: self.bn1.gamma.clone(),
-            bn_beta: self.bn1.beta.clone(),
-            bn_running_mean: self.bn1.running_mean.clone(),
-            bn_running_var: self.bn1.running_var.clone(),
-            bn_epsilon: self.bn1.epsilon,
-            // MaxPool2d layer
-            pool_kernel_size: self.pool.kernel_size,
-            pool_stride: self.pool.stride,
-            // Fully connected layer
-            fc_weights: (&self.fc_weights).into(),
-            fc_bias: (&self.fc_bias).into(),
-        };
-        
+        let serialized = self.to_serialized();
         Ok(serde_json::to_string_pretty(&serialized)?)
     }
 }
