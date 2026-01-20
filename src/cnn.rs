@@ -365,6 +365,9 @@ pub struct MnistCNN {
     pub learning_rate: f64,
 }
 
+// Constants
+const FLATTENED_SIZE: usize = 16 * 14 * 14; // 3136
+
 impl MnistCNN {
     /// Create a new MNIST CNN
     /// Architecture:
@@ -383,11 +386,11 @@ impl MnistCNN {
 
         // FC layer: 3136 -> 10
         let mut rng = crate::utils::SimpleRng::new(seed + 1);
-        let scale = (2.0 / 3136.0_f64).sqrt();
-        let fc_weights_data: Vec<f64> = (0..10 * 3136)
+        let scale = (2.0 / FLATTENED_SIZE as f64).sqrt();
+        let fc_weights_data: Vec<f64> = (0..10 * FLATTENED_SIZE)
             .map(|_| (rng.next_f64() * 2.0 - 1.0) * scale)
             .collect();
-        let fc_weights = Matrix::from_vec(10, 3136, fc_weights_data);
+        let fc_weights = Matrix::from_vec(10, FLATTENED_SIZE, fc_weights_data);
         let fc_bias = Matrix::zeros(10, 1);
 
         MnistCNN {
@@ -400,18 +403,29 @@ impl MnistCNN {
         }
     }
 
-    /// Forward pass
-    pub fn forward(&mut self, input: &Matrix) -> Matrix {
+    /// Helper: Convert matrix to Tensor4D
+    fn matrix_to_tensor4d(input: &Matrix) -> Tensor4D {
         assert_eq!(input.rows, 784);
         assert_eq!(input.cols, 1);
-
-        // Reshape input to 28x28 image
+        
         let mut img_data = Vec::with_capacity(784);
         for i in 0..784 {
             img_data.push(input.data[i]);
         }
-        let img = Tensor4D::from_vec(1, 1, 28, 28, img_data);
+        Tensor4D::from_vec(1, 1, 28, 28, img_data)
+    }
 
+    /// Helper: Extract features from flattened tensor
+    fn extract_batch_features(flat: &Matrix) -> Matrix {
+        let mut flat_vec = Vec::with_capacity(FLATTENED_SIZE);
+        for i in 0..FLATTENED_SIZE {
+            flat_vec.push(flat.get(0, i));
+        }
+        Matrix::from_vec(FLATTENED_SIZE, 1, flat_vec)
+    }
+
+    /// Forward pass through CNN layers to get features
+    fn forward_cnn(&mut self, img: &Tensor4D) -> Tensor4D {
         // Zero padding: 28x28 -> 32x32
         let padded = zero_pad_2d(&img, 2);
 
@@ -425,20 +439,20 @@ impl MnistCNN {
         let relu_out = bn_out.map(|x| if x > 0.0 { x } else { 0.0 });
 
         // MaxPool: 28x28x16 -> 14x14x16
-        let pool_out = self.pool.forward(&relu_out);
+        self.pool.forward(&relu_out)
+    }
+
+    /// Forward pass
+    pub fn forward(&mut self, input: &Matrix) -> Matrix {
+        let img = Self::matrix_to_tensor4d(input);
+        let pool_out = self.forward_cnn(&img);
 
         // Flatten: 14x14x16 = 3136
         let flat = flatten(&pool_out);
-
-        // Extract single batch
-        let mut flat_vec = Vec::with_capacity(3136);
-        for i in 0..3136 {
-            flat_vec.push(flat.get(0, i));
-        }
-        let flat_matrix = Matrix::from_vec(3136, 1, flat_vec);
+        let features = Self::extract_batch_features(&flat);
 
         // Linear: 3136 -> 10
-        let fc_out = self.fc_weights.dot(&flat_matrix).add(&self.fc_bias);
+        let fc_out = self.fc_weights.dot(&features).add(&self.fc_bias);
 
         // Softmax
         self.softmax(&fc_out)
@@ -465,9 +479,17 @@ impl MnistCNN {
 
     /// Train on a single example (simplified - no backprop through CNN)
     pub fn train_step(&mut self, input: &Matrix, target: &Matrix) -> f64 {
-        // For now, we'll just do forward pass and calculate loss
-        // Full backprop through CNN would require storing intermediate values
-        let prediction = self.forward(input);
+        // Get CNN features once
+        let img = Self::matrix_to_tensor4d(input);
+        let pool_out = self.forward_cnn(&img);
+
+        // Flatten
+        let flat = flatten(&pool_out);
+        let features = Self::extract_batch_features(&flat);
+
+        // Forward through FC layer
+        let fc_out = self.fc_weights.dot(&features).add(&self.fc_bias);
+        let prediction = self.softmax(&fc_out);
 
         // Calculate cross-entropy loss
         let mut loss = 0.0;
@@ -479,32 +501,6 @@ impl MnistCNN {
 
         // Simple gradient descent on FC layer only
         let error = prediction.sub(target);
-
-        // Get flattened features for this input
-        assert_eq!(input.rows, 784);
-        assert_eq!(input.cols, 1);
-
-        // Reshape input to 28x28 image
-        let mut img_data = Vec::with_capacity(784);
-        for i in 0..784 {
-            img_data.push(input.data[i]);
-        }
-        let img = Tensor4D::from_vec(1, 1, 28, 28, img_data);
-
-        // Forward through CNN layers to get features
-        let padded = zero_pad_2d(&img, 2);
-        let conv_out = self.conv1.forward(&padded);
-        let bn_out = self.bn1.forward(&conv_out);
-        let relu_out = bn_out.map(|x| if x > 0.0 { x } else { 0.0 });
-        let pool_out = self.pool.forward(&relu_out);
-        let flat = flatten(&pool_out);
-
-        // Extract single batch
-        let mut flat_vec = Vec::with_capacity(3136);
-        for i in 0..3136 {
-            flat_vec.push(flat.get(0, i));
-        }
-        let features = Matrix::from_vec(3136, 1, flat_vec);
 
         // Update FC weights
         let gradient = error.dot(&features.transpose());
