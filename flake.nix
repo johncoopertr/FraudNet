@@ -57,6 +57,7 @@
             echo "  cargo run      - Run the project"
             echo "  bacon          - Continuous build/test runner"
             echo ""
+            export SHELL=/run/current-system/sw/bin/bash
           '';
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
