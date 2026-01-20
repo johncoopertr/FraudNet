@@ -6,6 +6,7 @@ pub mod network;
 pub mod utils;
 pub mod db_schema;
 pub mod db_loader;
+pub mod cnn;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;

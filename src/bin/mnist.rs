@@ -1,5 +1,5 @@
 use fraudnet::matrix::Matrix;
-use fraudnet::network::NeuralNetwork;
+use fraudnet::cnn::MnistCNN;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::RowAccessor;
 use std::fs::File;
@@ -56,7 +56,7 @@ fn argmax(values: &[f64]) -> usize {
     max_idx
 }
 
-fn evaluate_mnist(network: &NeuralNetwork, inputs: &[Matrix], targets: &[Matrix]) -> f64 {
+fn evaluate_mnist(network: &mut MnistCNN, inputs: &[Matrix], targets: &[Matrix]) -> f64 {
     let mut correct = 0;
     
     for (input, target) in inputs.iter().zip(targets.iter()) {
@@ -101,17 +101,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Output classes:   10 (digits 0-9)");
     println!();
     
-    // Create MNIST network architecture
-    // 784 inputs -> 128 hidden -> 64 hidden -> 10 outputs
-    let architecture = vec![784, 128, 64, 10];
+    // Create MNIST CNN architecture
     let learning_rate = 0.01;
-    let mut network = NeuralNetwork::new(architecture.clone(), learning_rate, 42);
+    let mut network = MnistCNN::new(learning_rate, 42);
     
-    println!("Network Architecture:");
-    println!("  Input Layer:    784 neurons (28x28 pixels)");
-    println!("  Hidden Layer 1: 128 neurons (ReLU)");
-    println!("  Hidden Layer 2: 64 neurons (ReLU)");
-    println!("  Output Layer:   10 neurons (Sigmoid) - digit classes 0-9");
+    println!("CNN Architecture:");
+    println!("  Layer 1: ZeroPad2d       - 28x28 -> 32x32");
+    println!("  Layer 2: Conv2d          - 16 filters, 5x5 kernel, stride 1");
+    println!("  Layer 3: BatchNorm2d     - 16 features");
+    println!("  Layer 4: ReLU            - activation");
+    println!("  Layer 5: MaxPool2d       - 2x2 kernel, stride 2");
+    println!("  Layer 6: Flatten         - 3136 features (16*14*14)");
+    println!("  Layer 7: Linear          - 3136 -> 10");
+    println!("  Layer 8: Softmax         - 10 classes");
     println!("  Learning Rate:  {}", learning_rate);
     println!();
     
@@ -121,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("(This may take a few minutes)\n");
     
     for epoch in 0..epochs {
+        network.set_training(true);
         let mut total_loss = 0.0;
         
         for (input, target) in train_inputs.iter().zip(train_targets.iter()) {
@@ -131,8 +134,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let avg_loss = total_loss / train_inputs.len() as f64;
         
         // Evaluate accuracy every epoch
-        let train_acc = evaluate_mnist(&network, &train_inputs, &train_targets);
-        let test_acc = evaluate_mnist(&network, &test_inputs, &test_targets);
+        network.set_training(false);
+        let train_acc = evaluate_mnist(&mut network, &train_inputs, &train_targets);
+        let test_acc = evaluate_mnist(&mut network, &test_inputs, &test_targets);
         
         println!(
             "Epoch {}: Loss = {:.6}, Train Acc = {:.2}%, Test Acc = {:.2}%",
@@ -141,10 +145,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     // Final evaluation
+    network.set_training(false);
     println!("\n{}", "=".repeat(50));
     println!("Final Performance:");
-    let train_acc = evaluate_mnist(&network, &train_inputs, &train_targets);
-    let test_acc = evaluate_mnist(&network, &test_inputs, &test_targets);
+    let train_acc = evaluate_mnist(&mut network, &train_inputs, &train_targets);
+    let test_acc = evaluate_mnist(&mut network, &test_inputs, &test_targets);
     println!("  Training Accuracy: {:.2}%", train_acc * 100.0);
     println!("  Testing Accuracy:  {:.2}%", test_acc * 100.0);
     println!("{}", "=".repeat(50));
@@ -175,15 +180,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     
-    // Export trained model to JSON
-    println!("\nExporting trained model...");
-    network.save_to_json("model_mnist.json")?;
-    println!("  ✓ Saved model_mnist.json");
-    
-    println!("\nNext Steps:");
-    println!("  1. Run: python3 scripts/json_to_onnx.py");
-    println!("     This will convert model_mnist.json to model_mnist.onnx");
-    println!("  2. Open web/mnist.html in a browser to test webcam digit recognition");
+    println!("\nCNN Training Complete!");
+    println!("Note: Full model export to ONNX not yet implemented for CNN architecture.");
     
     Ok(())
 }
