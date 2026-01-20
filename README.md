@@ -1,9 +1,12 @@
 # FraudNet
-A deep-learning network built in Rust for detecting Fraud, Waste, and Abuse in unemployment insurance systems. Models are trained in Rust and exported to ONNX format for client-side inference using ONNX Runtime.
+A deep-learning network built in Rust for detecting Fraud, Waste, and Abuse in unemployment insurance systems, plus MNIST digit recognition for OCR. Models are trained in Rust and exported to ONNX format for client-side inference using ONNX Runtime.
 
 ## Overview
 
-FraudNet is specifically designed to detect unemployment insurance fraud using a deep neural network with 15 input features covering temporal patterns, identity verification, employment history, geographic consistency, and behavioral indicators. The system can identify:
+FraudNet provides two main applications:
+
+### 1. Unemployment Insurance Fraud Detection
+Specifically designed to detect unemployment insurance fraud using a deep neural network with 15 input features covering temporal patterns, identity verification, employment history, geographic consistency, and behavioral indicators. The system can identify:
 
 - **Identity Fraud**: Stolen or synthetic identities
 - **Concurrent Employment Fraud**: Working while claiming benefits
@@ -13,17 +16,29 @@ FraudNet is specifically designed to detect unemployment insurance fraud using a
 
 See [FRAUD_DETECTION.md](FRAUD_DETECTION.md) for detailed documentation on fraud detection features and methodology.
 
+### 2. MNIST Digit Recognition (NEW!)
+Real-time handwritten digit recognition using webcam OCR:
+
+- **Training Accuracy**: 98.83%
+- **Test Accuracy**: 98.70%
+- **Architecture**: 784→128→64→10 neural network
+- **Features**: Live webcam feed, real-time predictions, probability visualization
+- **Deployment**: ONNX model running entirely in the browser
+
+See [MNIST.md](MNIST.md) for complete MNIST documentation and usage guide.
+
 ## Features
 
 - 🧠 **Pure Rust Neural Network**: Lightweight, dependency-free training implementation
-- 🎯 **Fraud Detection Focus**: 15 features for unemployment insurance fraud detection
-- 📊 **Multiple Architectures**: Supports arbitrary network topologies (primary: 15→64→52→42→32→26→22→20→16→8→1)
+- 🎯 **Dual Purpose**: Fraud detection + MNIST digit recognition
+- 📊 **Multiple Architectures**: Supports arbitrary network topologies
 - 🌐 **Client-Side Inference**: Export trained models to ONNX for browser execution
+- 📹 **Webcam OCR**: Real-time digit recognition from video feed
 - 🚀 **High Performance**: Optimized matrix operations and WebAssembly acceleration
 - 🔄 **ONNX Format**: Industry-standard model format with ONNX Runtime Web
 - ✅ **Comprehensive Tests**: Full test coverage of core functionality
 - 🔍 **Multiple Fraud Types**: Detects identity, employment, geographic, and application fraud
-- 💾 **Real Data Support**: Load training data from Microsoft SQL Server database
+- 💾 **Real Data Support**: Load training data from Microsoft SQL Server database or Parquet files
 - 🧪 **Synthetic Fallback**: Automatic fallback to synthetic data when database is unavailable
 
 ## Quick Start
@@ -51,6 +66,26 @@ cargo run --features database
 ```
 
 See [DATABASE_SETUP.md](DATABASE_SETUP.md) for detailed database setup instructions, including the required table schema and feature descriptions.
+
+### MNIST Digit Recognition (Quick Start)
+
+Train the MNIST network and run the webcam OCR application:
+
+```bash
+# Train the MNIST model
+cargo run --bin mnist
+
+# Convert to ONNX format
+python3 scripts/json_to_onnx.py
+
+# Start the web server
+python3 scripts/start_webserver.py
+
+# Open http://localhost:8000/web/mnist.html
+# Click "Start Camera" and point your webcam at handwritten digits!
+```
+
+The MNIST datasets (`mnist-train.parquet` and `mnist-test.parquet`) are included in the repository with 6,000 training and 1,000 test samples. The trained model achieves 98.70% test accuracy. See [MNIST.md](MNIST.md) for complete documentation.
 
 ### Train and Export Models
 
