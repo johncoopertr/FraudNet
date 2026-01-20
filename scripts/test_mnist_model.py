@@ -82,6 +82,8 @@ def test_mnist_model():
     
     # Test on first 100 digits
     n_test = 100
+    # Maximum pixel value in sklearn's digits dataset (8-bit grayscale, max value is 16)
+    SKLEARN_DIGITS_MAX_VALUE = 16.0
     print(f"\nTesting on {n_test} digit images...\n")
     
     correct = 0
@@ -101,7 +103,7 @@ def test_mnist_model():
         img_28x28[start:start+16, start:start+16] = upscaled
         
         # Normalize to [0, 1]
-        pixels = (img_28x28 / 16.0).flatten()
+        pixels = (img_28x28 / SKLEARN_DIGITS_MAX_VALUE).flatten()
         
         # Run prediction
         output = predict(model, pixels)

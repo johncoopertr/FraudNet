@@ -44,6 +44,18 @@ fn load_mnist_data(path: &str) -> Result<(Vec<Matrix>, Vec<Matrix>), Box<dyn std
     Ok((inputs, targets))
 }
 
+fn argmax(values: &[f64]) -> usize {
+    let mut max_idx = 0;
+    let mut max_val = values[0];
+    for i in 1..values.len() {
+        if values[i] > max_val {
+            max_val = values[i];
+            max_idx = i;
+        }
+    }
+    max_idx
+}
+
 fn evaluate_mnist(network: &NeuralNetwork, inputs: &[Matrix], targets: &[Matrix]) -> f64 {
     let mut correct = 0;
     
@@ -51,24 +63,18 @@ fn evaluate_mnist(network: &NeuralNetwork, inputs: &[Matrix], targets: &[Matrix]
         let prediction = network.predict(input);
         
         // Find predicted class (max output)
-        let mut pred_class = 0;
-        let mut max_val = prediction.get(0, 0);
-        for i in 1..10 {
-            let val = prediction.get(i, 0);
-            if val > max_val {
-                max_val = val;
-                pred_class = i;
-            }
+        let mut pred_values = Vec::with_capacity(10);
+        for i in 0..10 {
+            pred_values.push(prediction.get(i, 0));
         }
+        let pred_class = argmax(&pred_values);
         
         // Find true class
-        let mut true_class = 0;
+        let mut true_values = Vec::with_capacity(10);
         for i in 0..10 {
-            if target.get(i, 0) > 0.5 {
-                true_class = i;
-                break;
-            }
+            true_values.push(target.get(i, 0));
         }
+        let true_class = argmax(&true_values);
         
         if pred_class == true_class {
             correct += 1;
@@ -148,25 +154,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..5 {
         let prediction = network.predict(&test_inputs[i]);
         
-        // Find predicted class
-        let mut pred_class = 0;
-        let mut max_val = prediction.get(0, 0);
-        for j in 1..10 {
-            let val = prediction.get(j, 0);
-            if val > max_val {
-                max_val = val;
-                pred_class = j;
-            }
-        }
-        
-        // Find true class
-        let mut true_class = 0;
+        // Find predicted class using argmax helper
+        let mut pred_values = Vec::with_capacity(10);
         for j in 0..10 {
-            if test_targets[i].get(j, 0) > 0.5 {
-                true_class = j;
-                break;
-            }
+            pred_values.push(prediction.get(j, 0));
         }
+        let pred_class = argmax(&pred_values);
+        let max_val = pred_values[pred_class];
+        
+        // Find true class using argmax helper
+        let mut true_values = Vec::with_capacity(10);
+        for j in 0..10 {
+            true_values.push(test_targets[i].get(j, 0));
+        }
+        let true_class = argmax(&true_values);
         
         println!(
             "  Sample {}: Predicted = {}, True = {}, Confidence = {:.2}%",
