@@ -8,6 +8,9 @@ pub mod db_schema;
 pub mod db_loader;
 pub mod cnn;
 
+#[cfg(test)]
+mod tests;
+
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 

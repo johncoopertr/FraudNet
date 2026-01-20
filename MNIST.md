@@ -11,16 +11,39 @@ The MNIST system is a complete end-to-end implementation that:
 
 ## Architecture
 
-### Neural Network
-- **Input Layer**: 784 neurons (28×28 pixel images, grayscale)
-- **Hidden Layer 1**: 128 neurons with ReLU activation
-- **Hidden Layer 2**: 64 neurons with ReLU activation
-- **Output Layer**: 10 neurons with Sigmoid activation (one per digit class 0-9)
+### Convolutional Neural Network (CNN)
+The MNIST system now uses a CNN architecture optimized for image recognition:
+
+- **Layer 1 - ZeroPad2d**: Pads 28×28 images to 32×32 to preserve edge features
+- **Layer 2 - Conv2d**: 16 filters with 5×5 kernel, stride 1
+  - Learns basic visual patterns like edges and curves
+  - Output: 28×28×16 feature maps
+- **Layer 3 - BatchNorm2d**: Normalizes 16 feature channels
+  - Stabilizes training and improves convergence
+- **Layer 4 - ReLU**: Non-linear activation function
+  - Introduces non-linearity: max(0, x)
+- **Layer 5 - MaxPool2d**: 2×2 kernel with stride 2
+  - Downsamples feature maps to 14×14×16
+  - Reduces spatial dimensions while preserving important features
+- **Layer 6 - Flatten**: Converts 3D feature maps to 1D vector
+  - Flattens 16×14×14 = 3,136 features
+- **Layer 7 - Linear**: Fully connected layer from 3,136 to 10 outputs
+  - Produces final digit class predictions
+- **Layer 8 - Softmax**: Converts logits to probabilities
+  - Outputs probability distribution over 10 digit classes (0-9)
+
+**Total Parameters**: 31,818
+- Conv2d weights: 16 × 1 × 5 × 5 = 400
+- Conv2d biases: 16
+- BatchNorm2d: 32 (16 gamma + 16 beta)
+- Linear weights: 10 × 3,136 = 31,360
+- Linear biases: 10
 
 ### Performance
-- **Training Accuracy**: 98.83%
-- **Testing Accuracy**: 98.70%
-- **Inference Speed**: ~5-20ms per frame (browser-dependent)
+- **Architecture**: Convolutional Neural Network (CNN)
+- **Training**: Backpropagation with gradient descent
+- **Learning Rate**: 0.01
+- **Training Time**: ~5-10 minutes per epoch (CPU)
 
 ## Dataset
 
@@ -34,29 +57,31 @@ Each sample contains:
 
 ## Training the Model
 
-To train the MNIST model from scratch:
+To train the MNIST CNN model from scratch:
 
 ```bash
-# Train the model (takes ~10-15 minutes)
+# Train the model (note: CNN training is computationally expensive)
 cargo run --bin mnist
 
 # This will:
 # 1. Load data from mnist-train.parquet and mnist-test.parquet
-# 2. Train the neural network for 10 epochs
-# 3. Display accuracy metrics
-# 4. Export the model to model_mnist.json
+# 2. Train the CNN for 10 epochs
+# 3. Display accuracy metrics during training
+# 4. Show example predictions
+
+# Note: CNN training on CPU may take significant time.
+# Consider using release mode for faster training:
+cargo run --release --bin mnist
 ```
 
 ## Converting to ONNX
 
-After training, convert the model to ONNX format for browser use:
+**Note**: ONNX export is not yet implemented for the CNN architecture. The current implementation focuses on the CNN architecture and training. Future work will include:
+- ONNX export for CNN models
+- Browser-based inference with ONNX Runtime Web
+- Webcam digit recognition interface
 
-```bash
-# Convert JSON model to ONNX
-python3 scripts/json_to_onnx.py
-
-# This creates model_mnist.onnx from model_mnist.json
-```
+For now, the CNN can be trained and evaluated using the Rust implementation.
 
 ## Web Application
 
@@ -112,21 +137,25 @@ python3 scripts/test_mnist_model.py
 FraudNet/
 ├── mnist-train.parquet          # Training dataset (6,000 samples)
 ├── mnist-test.parquet           # Test dataset (1,000 samples)
-├── model_mnist.json             # Trained model (JSON format)
-├── model_mnist.onnx             # Trained model (ONNX format)
 ├── src/
-│   └── bin/
-│       └── mnist.rs             # Training implementation
-├── scripts/
-│   ├── prepare_mnist.py         # Dataset preparation
-│   ├── json_to_onnx.py          # Model conversion
-│   ├── test_mnist_model.py      # Model testing
-│   └── start_webserver.py       # Web server
-└── web/
-    └── mnist.html               # Webcam OCR interface
+│   ├── cnn.rs                   # CNN implementation (Conv2d, BatchNorm2d, MaxPool2d)
+│   ├── bin/
+│   │   └── mnist.rs             # CNN training implementation
+│   └── tests.rs                 # Unit tests including CNN tests
+└── MNIST.md                     # This documentation
 ```
 
 ## Implementation Details
+
+### CNN Architecture
+
+The CNN is implemented in `src/cnn.rs` with the following key components:
+
+1. **Tensor4D**: 4D tensor representation for CNN operations (batch, channels, height, width)
+2. **Conv2d**: Convolutional layer with configurable filters, kernel size, stride, and padding
+3. **BatchNorm2d**: Batch normalization for stabilizing training
+4. **MaxPool2d**: Max pooling for downsampling feature maps
+5. **MnistCNN**: Complete CNN model combining all layers
 
 ### Data Loading
 
@@ -151,8 +180,11 @@ Training uses backpropagation with:
 - **Learning rate**: 0.01
 - **Epochs**: 10
 - **Batch size**: 1 (online learning)
-- **Activation**: ReLU for hidden layers, Sigmoid for output
-- **Loss function**: Mean Squared Error (MSE)
+- **Activation**: ReLU for hidden layers, Softmax for output
+- **Loss function**: Cross-entropy loss
+- **Optimizer**: Gradient descent (simplified - only FC layer is updated)
+
+**Note**: The current implementation trains only the fully connected layer to keep training time reasonable. Full CNN backpropagation through convolutional layers is not yet implemented but can be added for improved accuracy.
 
 ### Web Inference
 
