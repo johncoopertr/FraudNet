@@ -165,6 +165,7 @@ def main():
         ('model_linear.json', 'model_linear.onnx'),
         ('model_xor.json', 'model_xor.onnx'),
         ('model_circular.json', 'model_circular.onnx'),
+        ('model_mnist.json', 'model_mnist.onnx'),
     ]
     
     script_dir = Path(__file__).parent
