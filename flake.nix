@@ -39,6 +39,10 @@
           # Additional utilities
           just
           git
+
+          python313
+          python313Packages.numpy
+          python313Packages.onnx
         ];
 
       in

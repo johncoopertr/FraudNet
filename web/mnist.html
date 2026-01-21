@@ -235,7 +235,7 @@
         }
         
         canvas {
-            display: none;
+            display: flex;
         }
         
         @media (max-width: 1200px) {
@@ -392,7 +392,10 @@
             document.getElementById('confidence').textContent = '---%';
             document.getElementById('probabilities').innerHTML = '';
         }
-        
+
+	function roundToTenth(x) {
+		return Math.round(x * 10) / 10;
+	} 
         // Process video frame
         async function processFrame() {
             if (!session || !stream) return;
@@ -445,7 +448,7 @@
                 }
                 
                 // Update display
-		let displayDigit = maxVal > 60 ? maxIdx : "N/A";
+		let displayDigit = (maxVal * 100) > 60 ? maxIdx : "N/A";
 		console.log("displayDigit:", displayDigit)
                 document.getElementById('digitDisplay').textContent = displayDigit;
                 document.getElementById('confidence').textContent = (maxVal * 100).toFixed(1) + '%';
