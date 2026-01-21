@@ -13,6 +13,19 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+# Optional imports for different methods
+try:
+    from scipy import ndimage
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    
+try:
+    from sklearn.datasets import load_digits
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+
 
 def download_mnist():
     """Download the real MNIST dataset using keras/tensorflow."""
@@ -191,13 +204,15 @@ def augment_existing_data():
 
 def rotate_image(img, angle):
     """Rotate image by angle degrees."""
-    from scipy import ndimage
+    if not SCIPY_AVAILABLE:
+        return img  # Return original if scipy not available
     return ndimage.rotate(img, angle, reshape=False, mode='constant', cval=0)
 
 
 def translate_image(img, dx, dy):
     """Translate image by dx, dy pixels."""
-    from scipy import ndimage
+    if not SCIPY_AVAILABLE:
+        return img  # Return original if scipy not available
     return ndimage.shift(img, [dy, dx], mode='constant', cval=0)
 
 
@@ -205,8 +220,10 @@ def generate_mnist_like_data():
     """Generate MNIST-like dataset using sklearn's digits dataset (8x8)
     and synthetic data to create a full 28x28 dataset."""
     
+    if not SKLEARN_AVAILABLE:
+        raise ImportError("sklearn is required for generating synthetic MNIST data. Install with: pip install scikit-learn")
+    
     print("Generating MNIST-like dataset...")
-    from sklearn.datasets import load_digits
     
     # Load sklearn's built-in digits dataset (8x8, 1797 samples)
     digits = load_digits()
