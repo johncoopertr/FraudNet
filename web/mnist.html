@@ -330,18 +330,19 @@
             
             try {
                 // Try parent directory first
+                // Use CNN model which expects [1, 1, 28, 28] input
                 let modelPath;
                 try {
-                    modelPath = '../model_mnist.onnx';
+                    modelPath = '../model_mnist_cnn.onnx';
                     session = await ort.InferenceSession.create(modelPath);
                 } catch (e) {
-                    modelPath = 'model_mnist.onnx';
+                    modelPath = 'model_mnist_cnn.onnx';
                     session = await ort.InferenceSession.create(modelPath);
                 }
                 
                 statusEl.textContent = '✓ Model loaded successfully!';
                 statusEl.className = 'status ready';
-                console.log('✓ Loaded MNIST model from', modelPath);
+                console.log('✓ Loaded MNIST CNN model from', modelPath);
             } catch (error) {
                 statusEl.textContent = '✗ Error loading model: ' + error.message;
                 statusEl.className = 'status error';
