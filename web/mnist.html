@@ -427,33 +427,15 @@
             
             // Convert to grayscale and normalize to [0, 1]
             // MNIST expects white digits on black background, so we invert
-            const grayValues = new Float32Array(28 * 28);
             for (let i = 0; i < 28 * 28; i++) {
                 const r = imageData.data[i * 4];
                 const g = imageData.data[i * 4 + 1];
                 const b = imageData.data[i * 4 + 2];
                 // Grayscale conversion
                 const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                grayValues[i] = gray / 255.0;
-            }
-            
-            // Find min and max for contrast enhancement
-            let min = grayValues[0];
-            let max = grayValues[0];
-            for (let i = 1; i < grayValues.length; i++) {
-                if (grayValues[i] < min) min = grayValues[i];
-                if (grayValues[i] > max) max = grayValues[i];
-            }
-            const range = max - min;
-            
-            // Apply contrast enhancement and inversion
-            // MNIST trained on white digits (1.0) on black background (0.0)
-            const MIN_CONTRAST_RANGE = 0.1;
-            for (let i = 0; i < 28 * 28; i++) {
-                // Enhance contrast by stretching to full [0, 1] range
-                let normalized = range > MIN_CONTRAST_RANGE ? (grayValues[i] - min) / range : grayValues[i];
-                // Invert for MNIST format
-                pixels[i] = 1.0 - normalized;
+                // Normalize to [0, 1] and invert for MNIST format
+                // Dark pixels (digit) become 1.0, light pixels (background) become 0.0
+                pixels[i] = 1.0 - (gray / 255.0);
             }
             
             // Visualize the preprocessed image for debugging
