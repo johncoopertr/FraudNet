@@ -428,15 +428,20 @@
             }
             
             // Find min and max for contrast enhancement
-            let min = Math.min(...grayValues);
-            let max = Math.max(...grayValues);
+            let min = grayValues[0];
+            let max = grayValues[0];
+            for (let i = 1; i < grayValues.length; i++) {
+                if (grayValues[i] < min) min = grayValues[i];
+                if (grayValues[i] > max) max = grayValues[i];
+            }
             const range = max - min;
             
             // Apply contrast enhancement and inversion
             // MNIST trained on white digits (1.0) on black background (0.0)
+            const MIN_CONTRAST_RANGE = 0.1;
             for (let i = 0; i < 28 * 28; i++) {
                 // Enhance contrast by stretching to full [0, 1] range
-                let normalized = range > 0.1 ? (grayValues[i] - min) / range : grayValues[i];
+                let normalized = range > MIN_CONTRAST_RANGE ? (grayValues[i] - min) / range : grayValues[i];
                 // Invert for MNIST format
                 pixels[i] = 1.0 - normalized;
             }
