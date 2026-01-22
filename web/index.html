@@ -262,6 +262,25 @@
                 
                 <div id="circular-result"></div>
             </div>
+            
+            <!-- MNIST Webcam Demo -->
+            <div class="model-card">
+                <h2>MNIST Digit Recognition</h2>
+                <div class="model-info">
+                    <strong>Architecture:</strong> CNN (Conv2d → BatchNorm → ReLU → MaxPool → Linear)<br>
+                    <strong>Problem:</strong> Handwritten Digit Recognition (0-9)<br>
+                    <strong>Runtime:</strong> ONNX Runtime Web + Webcam
+                </div>
+                
+                <p style="margin: 15px 0; color: #666; font-size: 0.95em;">
+                    Real-time webcam-based digit recognition using a convolutional neural network.
+                    Write a digit on paper and show it to your camera!
+                </p>
+                
+                <a href="mnist.html" style="display: block; width: 100%; padding: 12px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 6px; font-size: 1em; font-weight: 600; text-align: center; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    Open MNIST Demo
+                </a>
+            </div>
         </div>
         
         <div class="card">

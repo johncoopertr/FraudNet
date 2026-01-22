@@ -235,7 +235,12 @@
         }
         
         canvas {
-            display: flex;
+            display: block;
+            border: 2px solid #667eea;
+            margin-top: 10px;
+            image-rendering: pixelated;
+            width: 224px;
+            height: 224px;
         }
         
         @media (max-width: 1200px) {
@@ -266,7 +271,11 @@
                     <button id="startBtn" onclick="startWebcam()">Start Camera</button>
                     <button id="stopBtn" onclick="stopWebcam()" disabled>Stop Camera</button>
                 </div>
-                <canvas id="canvas"></canvas>
+                <div style="margin-top: 15px;">
+                    <strong>Preprocessed Input (28×28):</strong>
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">This shows what the model sees after preprocessing</div>
+                    <canvas id="canvas"></canvas>
+                </div>
             </div>
             
             <div class="info-panel">
@@ -330,18 +339,19 @@
             
             try {
                 // Try parent directory first
+                // Use CNN model which expects [1, 1, 28, 28] input
                 let modelPath;
                 try {
-                    modelPath = '../model_mnist.onnx';
+                    modelPath = '../model_mnist_cnn.onnx';
                     session = await ort.InferenceSession.create(modelPath);
                 } catch (e) {
-                    modelPath = 'model_mnist.onnx';
+                    modelPath = 'model_mnist_cnn.onnx';
                     session = await ort.InferenceSession.create(modelPath);
                 }
                 
                 statusEl.textContent = '✓ Model loaded successfully!';
                 statusEl.className = 'status ready';
-                console.log('✓ Loaded MNIST model from', modelPath);
+                console.log('✓ Loaded MNIST CNN model from', modelPath);
             } catch (error) {
                 statusEl.textContent = '✗ Error loading model: ' + error.message;
                 statusEl.className = 'status error';
@@ -413,7 +423,7 @@
             
             // Get image data and convert to grayscale
             const imageData = ctx.getImageData(0, 0, 28, 28);
-            const pixels = new Float32Array(784);
+            const pixels = new Float32Array(28 * 28);
             
             // Convert to grayscale and normalize to [0, 1]
             // MNIST expects white digits on black background, so we invert
@@ -423,14 +433,36 @@
                 const b = imageData.data[i * 4 + 2];
                 // Grayscale conversion
                 const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                // Invert: MNIST trained on white digits (1.0) on black background (0.0)
+                // Normalize to [0, 1] and invert for MNIST format
+                // Dark pixels (digit) become 1.0, light pixels (background) become 0.0
                 pixels[i] = 1.0 - (gray / 255.0);
             }
+            
+            // Check if there's actually a digit present by measuring "ink" amount
+            // Count pixels with intensity > 0.5 (white pixels after inversion)
+            let inkPixels = 0;
+            for (let i = 0; i < pixels.length; i++) {
+                if (pixels[i] > 0.5) inkPixels++;
+            }
+            const inkPercentage = (inkPixels / pixels.length) * 100;
+            const hasDigit = inkPixels > 20; // At least 20 pixels should be "ink" for a digit
+            
+            // Visualize the preprocessed image for debugging
+            const debugImageData = ctx.createImageData(28, 28);
+            for (let i = 0; i < 28 * 28; i++) {
+                const val = Math.floor(pixels[i] * 255);
+                debugImageData.data[i * 4] = val;     // R
+                debugImageData.data[i * 4 + 1] = val; // G
+                debugImageData.data[i * 4 + 2] = val; // B
+                debugImageData.data[i * 4 + 3] = 255; // A
+            }
+            ctx.putImageData(debugImageData, 0, 0);
             
             // Run inference
             const startTime = performance.now();
             try {
-                const inputTensor = new ort.Tensor('float32', pixels, [1, 784]);
+                // CNN model expects [batch, channels, height, width] = [1, 1, 28, 28]
+                const inputTensor = new ort.Tensor('float32', pixels, [1, 1, 28, 28]);
                 const feeds = { input: inputTensor };
                 const results = await session.run(feeds);
                 const output = results.output.data;
@@ -449,9 +481,17 @@
                     }
                 }
                 
+                // Debug: Log raw output to understand why "4" appears when showing nothing
+                console.log("Raw network output:", Array.from(output.slice(0, 10)).map((v, i) => `${i}: ${v.toExponential(2)}`).join(', '));
+                console.log("Max index:", maxIdx, "Max value:", maxVal);
+                
                 // Update display
-		let displayDigit = (maxVal * 100) > 60 ? maxIdx : "N/A";
-		console.log("displayDigit:", displayDigit)
+		// Show digit if confidence > 50% AND there's actually a digit present
+		let displayDigit = "N/A";
+		if (hasDigit && (maxVal * 100) > 50) {
+		    displayDigit = maxIdx;
+		}
+		console.log("displayDigit:", displayDigit, "| hasDigit:", hasDigit, "| inkPixels:", inkPixels, "| confidence:", (maxVal * 100).toFixed(1) + "%")
                 document.getElementById('digitDisplay').textContent = displayDigit;
                 document.getElementById('confidence').textContent = (maxVal * 100).toFixed(1) + '%';
                 
