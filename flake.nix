@@ -43,6 +43,9 @@
           python313
           python313Packages.numpy
           python313Packages.onnx
+          python313Packages.pandas
+          python313Packages.pyarrow
+          python313Packages.tensorflow
         ];
 
       in

@@ -7,6 +7,7 @@ mod tests;
 mod utils;
 mod db_schema;
 mod db_loader;
+mod cnn;
 
 use data::{SyntheticDataGenerator, FraudDataGenerator};
 use matrix::Matrix;

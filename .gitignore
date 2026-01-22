@@ -33,3 +33,4 @@ demo_data.json
 # already existing elements were commented out
 
 #/target
+mnist-test.parquet mnist-train.parquet
