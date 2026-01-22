@@ -488,7 +488,7 @@
                 // Update display
 		// Show digit if confidence > 50% AND there's actually a digit present
 		let displayDigit = "N/A";
-		if (hasDigit && (maxVal * 100) > 50) {
+                if (hasDigit &&  100 > (maxVal * 100) && (maxVal * 100) > 50) {
 		    displayDigit = maxIdx;
 		}
 		console.log("displayDigit:", displayDigit, "| hasDigit:", hasDigit, "| inkPixels:", inkPixels, "| confidence:", (maxVal * 100).toFixed(1) + "%")
@@ -498,7 +498,7 @@
                 // Update probability bars
                 let probHtml = '';
                 for (let i = 0; i < 10; i++) {
-                    const prob = output[i] * 100;
+                    const prob = output[i] * 100 == 100 ? 0 : output[i] * 100;
                     probHtml += `
                         <div class="prob-bar">
                             <div class="prob-label">${i}:</div>
