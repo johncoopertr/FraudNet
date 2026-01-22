@@ -235,7 +235,12 @@
         }
         
         canvas {
-            display: flex;
+            display: block;
+            border: 2px solid #667eea;
+            margin-top: 10px;
+            image-rendering: pixelated;
+            width: 140px;
+            height: 140px;
         }
         
         @media (max-width: 1200px) {
@@ -266,7 +271,11 @@
                     <button id="startBtn" onclick="startWebcam()">Start Camera</button>
                     <button id="stopBtn" onclick="stopWebcam()" disabled>Stop Camera</button>
                 </div>
-                <canvas id="canvas"></canvas>
+                <div style="margin-top: 15px;">
+                    <strong>Preprocessed Input (28×28):</strong>
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">This shows what the model sees after preprocessing</div>
+                    <canvas id="canvas"></canvas>
+                </div>
             </div>
             
             <div class="info-panel">
@@ -446,6 +455,17 @@
                 // Invert for MNIST format
                 pixels[i] = 1.0 - normalized;
             }
+            
+            // Visualize the preprocessed image for debugging
+            const debugImageData = ctx.createImageData(28, 28);
+            for (let i = 0; i < 28 * 28; i++) {
+                const val = Math.floor(pixels[i] * 255);
+                debugImageData.data[i * 4] = val;     // R
+                debugImageData.data[i * 4 + 1] = val; // G
+                debugImageData.data[i * 4 + 2] = val; // B
+                debugImageData.data[i * 4 + 3] = 255; // A
+            }
+            ctx.putImageData(debugImageData, 0, 0);
             
             // Run inference
             const startTime = performance.now();
