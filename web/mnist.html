@@ -481,6 +481,10 @@
                     }
                 }
                 
+                // Debug: Log raw output to understand why "4" appears when showing nothing
+                console.log("Raw network output:", Array.from(output.slice(0, 10)).map((v, i) => `${i}: ${v.toExponential(2)}`).join(', '));
+                console.log("Max index:", maxIdx, "Max value:", maxVal);
+                
                 // Update display
 		// Show digit if confidence > 50% AND there's actually a digit present
 		let displayDigit = "N/A";
